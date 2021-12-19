@@ -69,7 +69,10 @@ data Tree (X : Set) : Set where
    (2 MARKS) -}
 
 insertTree : ℕ -> Tree ℕ -> Tree ℕ
-insertTree = {!!}
+insertTree x leaf = leaf <[ x ]> leaf
+insertTree x (t <[ x₁ ]> t₁) with x  <ᵇ x₁
+... | true =  ( insertTree x t ) <[ x₁ ]> t₁
+... | false = t <[ x₁ ]> (insertTree x t₁)
 
 -- HINT: the import list for Data.Nat above might contain useful things
 
@@ -78,22 +81,23 @@ insertTree = {!!}
    (1 MARK) -}
 
 makeTree : List ℕ -> Tree ℕ
-makeTree = {!!}
+makeTree [] = leaf
+makeTree (x ∷ l) = insertTree x ( makeTree l )
 
 {- ??? 1.3 Implement the function which flattens a tree to a list,
        and combine it with makeTree to implement a sorting function.
    (1 MARKS) -}
 
 flatten : {X : Set} -> Tree X -> List X
-flatten = {!!}
+flatten leaf = []
+flatten (t <[ x ]> t₁) = ( flatten t ) ++  (  x  ∷ ( flatten t₁ ) )
 
 treeSort : List ℕ -> List ℕ
-treeSort = {!!}
+treeSort l = flatten ( makeTree l )
 
 -- TIP: You can uncomment the following test cases to check your work. They
 -- should all typecheck if you got it right.
 
-{-
 _ : treeSort [ 1 ] ≡ [ 1 ]
 _ = refl
 
@@ -105,7 +109,7 @@ _ = refl
 
 _ : treeSort (3 ∷ 2 ∷ 3 ∷ []) ≡ (2 ∷ 3 ∷ 3 ∷ [])
 _ = refl
--}
+
 
 {- ??? 1.4 implement a fast version of flatten, taking an accumulating
        parameter, never using ++. It should satisfy
@@ -116,13 +120,26 @@ _ = refl
    (2 MARKS) -}
 
 fastFlatten : {X : Set} -> Tree X -> List X -> List X
-fastFlatten = {!!}
+fastFlatten leaf l = l
+fastFlatten (t <[ x ]> t₁) l = fastFlatten t ( x ∷ fastFlatten t₁ l )
 
 fastTreeSort : List ℕ -> List ℕ
-fastTreeSort = {!!}
+fastTreeSort l = fastFlatten ( makeTree l ) []
 
 -- TIP: You can copy and modify the test cases above to check that
 -- also fastTreeSort works as intended.
+
+_ : fastTreeSort [ 1 ] ≡ [ 1 ]
+_ = refl
+
+_ : fastTreeSort (1 ∷ 2 ∷ 3 ∷ []) ≡ (1 ∷ 2 ∷ 3 ∷ [])
+_ = refl
+
+_ : fastTreeSort (3 ∷ 1 ∷ 2 ∷ []) ≡ (1 ∷ 2 ∷ 3 ∷ [])
+_ = refl
+
+_ : fastTreeSort (3 ∷ 2 ∷ 3 ∷ []) ≡ (2 ∷ 3 ∷ 3 ∷ [])
+_ = refl
 
 {- ??? 1.5 *Prove* that fastFlatten correctly implements it
        specification.  You will need to prove an additional fact about
@@ -157,10 +174,11 @@ fastTreeSortCorrect = {!!}
      (2 MARKS) -}
 
   orAdjunctionFrom : (P ⊎ Q -> R) -> ((P -> R) × (Q -> R))
-  orAdjunctionFrom = {!!}
+  orAdjunctionFrom pqr = (λ p -> pqr (inj₁ p)) , λ q -> pqr (inj₂ q)
 
   orAdjunctionTo : ((P -> R) × (Q -> R)) -> (P ⊎ Q -> R)
-  orAdjunctionTo = {!!}
+  orAdjunctionTo (fst , snd) (inj₁ x) = fst x
+  orAdjunctionTo (fst , snd) (inj₂ y) = snd y
 
   {- ??? 1.8 Which of the following operations can be implemented?
          For each operation, either give an implementation, or comment
@@ -175,23 +193,25 @@ fastTreeSortCorrect = {!!}
      (4 MARKS) -}
 
   contrapositive : (P → Q) → (¬ Q → ¬ P)
-  contrapositive = {!!}
+  contrapositive p2q notq = λ p -> notq (p2q p)
 
-  contrapositiveReverse : (¬ Q → ¬ P) → (P → Q)
-  contrapositiveReverse = {!!}
+  -- answer: can't solve
+  -- contrapositiveReverse : (¬ Q → ¬ P) → (P → Q)
+  -- contrapositiveReverse = {!!}
 
   variation1 : (P → ¬ Q) → (Q → ¬ P)
-  variation1 = {!!}
+  variation1 p2notq q = λ p ->  p2notq p q
 
-  variation2 : (¬ P → Q) → (¬ Q → P)
-  variation2 = {!!}
+  -- answer: can't solve
+  -- variation2 : (¬ P → Q) → (¬ Q → P)
+  -- variation2 = {!!}
 
   {- ??? 1.9 Show that even though Double Negation Elimination
          is not provable in Agda, the double-negation of it is.
      (2 MARKS) -}
 
   ¬¬DNE : {X : Set} -> ¬ ¬ (¬ ¬ X → X)
-  ¬¬DNE = {!!}
+  ¬¬DNE = λ x ->  {!!} 
 
   {- ??? 1.10 For each of the following operations, either give an
          implementation, or comment it out and leave a comment
@@ -199,16 +219,23 @@ fastTreeSortCorrect = {!!}
      (4 MARKS) -}
 
   deMorgan-⊎-from : ¬ (P ⊎ Q) -> (¬ P) × (¬ Q)
-  deMorgan-⊎-from = {!!}
+  deMorgan-⊎-from x = ( λ p -> x (inj₁ p) ) , ( λ q -> x (inj₂ q))
 
+  jiting : (¬ P) × (¬ Q) -> (P ⊎ Q) -> ⊥
+  jiting (notp , notq) (inj₁ x) = notp x
+  jiting (notp , notq) (inj₂ y) = notq y
+
+  -- TODO better solution
   deMorgan-⊎-to : (¬ P) × (¬ Q) -> ¬ (P ⊎ Q)
-  deMorgan-⊎-to = {!!}
+  deMorgan-⊎-to x = λ porq → jiting x porq
 
-  deMorgan-×-from : ¬ (P × Q) -> (¬ P) ⊎ (¬ Q)
-  deMorgan-×-from = {!!}
+  -- answer: unsolvable
+  -- deMorgan-×-from : ¬ (P × Q) -> (¬ P) ⊎ (¬ Q)
+  -- deMorgan-×-from = {!!}
 
   deMorgan-×-to : (¬ P) ⊎ (¬ Q) -> ¬ (P × Q)
-  deMorgan-×-to = {!!}
+  deMorgan-×-to (inj₁ notp) = λ pq -> notp (proj₁ pq)
+  deMorgan-×-to (inj₂ notq) = λ pq -> notq (proj₂ pq)
 
   {- ??? 1.11 Show that double negation is a /monad/; a concept you
          might remember from Haskell (don't worry if you don't, we'll
@@ -217,10 +244,10 @@ fastTreeSortCorrect = {!!}
      (1 MARK) -}
 
   return : {P : Set} → P -> ¬ ¬ P
-  return = {!!}
+  return p  = λ x -> x p
 
   _>>=_ : {P Q : Set} → ¬ ¬ P -> (P -> ¬ ¬ Q) -> ¬ ¬ Q
-  (¬¬p >>= f) = {!!}
+  (¬¬p >>= f) = λ notq -> ¬¬p ( ( variation1 f notq))
 
   -- TIP: if an operation with name _>>=_ is in scope, Agda allows us to
   -- use do-notation (again possibly familiar from Haskell) to write
@@ -243,10 +270,11 @@ fastTreeSortCorrect = {!!}
      (2 MARKS) -}
 
   ¬¬-distributes-× : ¬ ¬ P × ¬ ¬ Q -> ¬ ¬ (P × Q)
-  ¬¬-distributes-× = {!!}
+  ¬¬-distributes-× (nnp , nnq) = nnp >>= λ p -> nnq >>= λ q -> return ( p , q)
 
   ¬¬-distributes-⊎ : ¬ ¬ P ⊎ ¬ ¬ Q -> ¬ ¬ (P ⊎ Q)
-  ¬¬-distributes-⊎ = {!!}
+  ¬¬-distributes-⊎ (inj₁ x) = ¬¬-map (λ z -> inj₁ z)  x 
+  ¬¬-distributes-⊎ (inj₂ y) = ¬¬-map (λ z -> inj₂ z)  y  
 
   {- ??? 1.13 The Drinker Paradox. Prove the following counter-intuitive
          fact of classical logic: in every non-empty pub, there is a single
