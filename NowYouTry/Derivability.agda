@@ -174,9 +174,16 @@ NDtoSK = SKVtoSK ∘ NDtoSKV
 
 -- Prove that `(B -> A) -> (A -> B)` is not provable in the SK calculus:
 
+jiting :  ¬ ( ε ⊢ (Atom "B" ⇒ Atom "A") ⇒ (Atom "A" ⇒ Atom "B"))
+jiting d = ⟦ d ⟧ ρ tt (λ x -> ⊥-elim x) tt
+  where
+    ρ :  String -> Set
+    ρ "A" = ⊤
+    ρ "B" = ⊥
+    ρ _  = ℕ
+    
 ¬everythingEquivalent : ¬ (⊢sk (Atom "B" ⇒ Atom "A") ⇒ (Atom "A" ⇒ Atom "B"))
-¬everythingEquivalent d = {!!}
-
+¬everythingEquivalent d = jiting (SKtoND d )
 
 
 

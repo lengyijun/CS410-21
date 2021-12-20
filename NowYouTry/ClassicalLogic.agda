@@ -42,8 +42,11 @@ jiting x = (λ z → x (inj₁ z))
 jiqian :  { P Q : Set } -> ¬ (P ⊎ Q) -> ¬ Q            
 jiqian x = (λ z → x (inj₂ z)) 
 
+luyao : {P : Set } ->  ¬ (P ⊎ ¬ P ) -> ⊥
+luyao x = jiqian x ( jiting x )
+
 DNE→LEM : DNE -> LEM
-DNE→LEM dne {P} = dne λ x ->  jiqian x (jiting x) 
+DNE→LEM dne {P} = dne luyao
 -- hint: you probably want to make your first move `dne`
 
 
@@ -51,3 +54,7 @@ LEM→Pierce : LEM -> Pierce
 LEM→Pierce lem {P} with lem {P}
 LEM→Pierce lem {P} | inj₁ p = λ x -> p
 LEM→Pierce lem {P} | inj₂ ¬p  = λ x -> x ( λ y -> ⊥-elim (  ¬p y ) )
+
+Pierce→Lem : Pierce -> LEM
+Pierce→Lem pierce {P}  = pierce ( λ pnp -> ( ⊥-elim  ( luyao pnp) ) )
+
