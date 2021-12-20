@@ -19,6 +19,9 @@ lem {P} = {!!}
 DNE : Set1
 DNE = {P : Set} -> ¬ ¬ P -> P
 
+Pierce :  Set1
+Pierce = {P : Set } -> {Q : Set} -> ( (P -> Q) -> P ) -> P 
+
 {-
 dne : DNE -- not provable
 dne {P} ¬¬p = {!!}
@@ -43,3 +46,8 @@ DNE→LEM : DNE -> LEM
 DNE→LEM dne {P} = dne λ x ->  jiqian x (jiting x) 
 -- hint: you probably want to make your first move `dne`
 
+
+LEM→Pierce : LEM -> Pierce
+LEM→Pierce lem {P} with lem {P}
+LEM→Pierce lem {P} | inj₁ p = λ x -> p
+LEM→Pierce lem {P} | inj₂ ¬p  = λ x -> x ( λ y -> ⊥-elim (  ¬p y ) )
