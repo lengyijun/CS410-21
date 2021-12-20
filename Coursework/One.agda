@@ -146,18 +146,30 @@ _ = refl
        concatenation separately, and use that in the proof.
    (3 MARKS) -}
 
+luyao : { X : Set } ->  { l1 l2 l3 : List X} ->
+        l1 ++ ( l2 ++ l3 )  ≡  ( l1 ++  l2 ) ++ l3  
+luyao {X} {[]} {l2} {l3} = refl
+luyao {X} {x ∷ l1} {l2} {l3} rewrite luyao {X} {l1} {l2} {l3} = refl
+
+
 fastFlattenCorrect : {X : Set} -> (t : Tree X) -> (xs : List X) ->
                      fastFlatten t xs ≡ (flatten t ++ xs)
-fastFlattenCorrect = {!!}
+fastFlattenCorrect leaf xs = refl
+fastFlattenCorrect (t <[ x ]> t₁) xs rewrite fastFlattenCorrect t₁ xs | fastFlattenCorrect t  (x ∷ flatten t₁ ++ xs) = luyao  {_} {flatten t} { x ∷ flatten t₁ }  {xs}
 
 {- ??? 1.6 Use fastFlattenCorrect to prove that treeSort and
        fastTreeSort agree. If you stop and think, you should see that
        there is no need to pattern match here.
        But, again, you will need to prove an additional fact about concatenation.
    (1 MARK) -}
+   
+lilith : (xs : List ℕ) -> xs ++ []  ≡ xs
+lilith [] = refl
+lilith (x ∷ xs) rewrite lilith xs = refl
 
 fastTreeSortCorrect : (xs : List ℕ) -> fastTreeSort xs ≡ treeSort xs
-fastTreeSortCorrect = {!!}
+fastTreeSortCorrect [] = refl
+fastTreeSortCorrect (x ∷ xs) rewrite fastTreeSortCorrect xs  | fastFlattenCorrect (insertTree x (makeTree xs)) []  | lilith ( flatten (insertTree x (makeTree xs)) ) = refl 
 
 
 
@@ -211,7 +223,8 @@ fastTreeSortCorrect = {!!}
      (2 MARKS) -}
 
   ¬¬DNE : {X : Set} -> ¬ ¬ (¬ ¬ X → X)
-  ¬¬DNE = λ x ->  {!!} 
+  ¬¬DNE  = λ negDouble  ->  negDouble (λ nnx -> ⊥-elim ( nnx λ x -> negDouble λ  y ->  x ) )
+ 
 
   {- ??? 1.10 For each of the following operations, either give an
          implementation, or comment it out and leave a comment

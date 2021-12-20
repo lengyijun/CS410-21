@@ -33,7 +33,13 @@ LEM→DNE lem {P} ¬¬p | inj₂ ¬p = ⊥-elim (¬¬p ¬p)
 
 -- Now you try
 
+jiting :  { P Q : Set } -> ¬ (P ⊎ Q) -> ¬ P             
+jiting x = (λ z → x (inj₁ z))
+
+jiqian :  { P Q : Set } -> ¬ (P ⊎ Q) -> ¬ Q            
+jiqian x = (λ z → x (inj₂ z)) 
+
 DNE→LEM : DNE -> LEM
-DNE→LEM dne {P} = {!!}
+DNE→LEM dne {P} = dne λ x ->  jiqian x (jiting x) 
 -- hint: you probably want to make your first move `dne`
 
