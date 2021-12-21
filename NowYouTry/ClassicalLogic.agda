@@ -58,3 +58,5 @@ LEM→Pierce lem {P} | inj₂ ¬p  = λ x -> x ( λ y -> ⊥-elim (  ¬p y ) )
 Pierce→Lem : Pierce -> LEM
 Pierce→Lem pierce {P}  = pierce ( λ pnp -> ( ⊥-elim  ( luyao pnp) ) )
 
+Pierce→DNE : Pierce -> DNE
+Pierce→DNE pierce dne =  pierce ( λ x ->  ⊥-elim  ( dne x ) )

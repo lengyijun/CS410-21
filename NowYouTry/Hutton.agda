@@ -206,7 +206,7 @@ data TExpr' : Ty -> Set where
   bit : Bool -> TExpr' bool
   _+E_ : TExpr' nat -> TExpr' nat -> TExpr' nat
   ifE_then_else_ : ∀ {t} → TExpr' bool -> TExpr' t -> TExpr' t -> TExpr' t
-  -- _<E_ : ?
+  _<E_ : TExpr' nat -> TExpr' nat -> TExpr' bool
 
 -- te4 : TExpr' nat
 -- te4 = ifE num 7 <E num 3 then num 5 else num 4
@@ -218,6 +218,7 @@ teval' (num x) = x
 teval' (bit x) = x
 teval' (e +E e') = teval' e + teval' e'
 teval' (ifE e then e' else e'') = if teval' e then teval' e' else teval' e''
+teval' (e <E e') = teval' e <ᵇ teval' e'
 
 -- _ : teval' te4 ≡ 4
 -- _ = refl

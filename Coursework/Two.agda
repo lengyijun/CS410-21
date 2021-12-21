@@ -86,14 +86,17 @@ module A where
      (1 MARK) -}
 
   17≤42 : 17 ≤ 42
-  17≤42 = {!!}
+  17≤42 = tt
 
   {- ??? 2.2 Show that this definition is propositional, ie that any two
          proofs of it are equal.
      (1 MARK) -}
 
   propositional : (n m : ℕ) → isPropositional (n ≤ m)
-  propositional = {!!}
+  propositional zero zero =  {!!}
+  propositional zero (suc y) = {!!}
+  propositional (suc x) zero = {!!}
+  propositional (suc x) (suc y) = {!!}
 
 ------------------
 module B where
@@ -112,7 +115,7 @@ module B where
      (1 MARK) -}
 
   17≤42 : 17 ≤ 42
-  17≤42 = {!!}
+  17≤42 =  s≤s ( s≤s  (s≤s  ( s≤s (  s≤s (  s≤s  (  s≤s  (  s≤s  ( s≤s  ( s≤s  (  s≤s  (  s≤s  (  s≤s  (  s≤s  (  s≤s   (  s≤s  (  s≤s   z≤n )  ) )  ) ) ) ) ) ) )) )  ) ) ) )
 
 
   -- We already proved that this definition was propositional and
@@ -143,17 +146,19 @@ module C where
      (1 MARK) -}
 
   17≤42 : 17 ≤ 42
-  17≤42 = {!!}
+  17≤42 =  ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step ( ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step  (  ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step ( ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step  ( ≤-step ≤-refl  )  ) ) ) ) ) ) ) ) ) ) )  )  ) ) ) ) ) ) ) ) ) ) )
 
 {- ??? 2.5 Show that you can translate back and forth between
        A.≤ and B.≤.
    (2 MARKS) -}
 
 A→B : (n m : ℕ) -> n A.≤ m -> n B.≤ m
-A→B = {!!}
+A→B zero m a =  B.z≤n
+A→B (suc n) (suc m) a = B.s≤s ( A→B n m a)
 
 B→A : {n m : ℕ} -> n B.≤ m -> n A.≤ m
-B→A = {!!}
+B→A B.z≤n = tt
+B→A (B.s≤s x) =  B→A x
 
 {- ??? 2.6 Now put together what you have so far to show that
        A.≤ and B.≤ are isomorphic.
@@ -165,24 +170,53 @@ B→A = {!!}
 -- by "copattern matching", which is quite convenient: you give a
 -- definition for each field in the record.
 
+ABA : (n m : ℕ ) -> ( x : n A.≤ m ) ->  B→A ( A→B n m x ) ≡  x
+ABA zero m x  =  refl 
+ABA (suc n) (suc m) x = ABA n m x
+
+BAB  : (n m : ℕ ) -> ( x : n B.≤ m ) ->  A→B n m ( B→A x ) ≡  x
+BAB .zero m B.z≤n = refl
+BAB .(suc _) .(suc _) (B.s≤s b) = cong B.s≤s (BAB _ _  b)
+
 A↔B : (n m : ℕ) -> n A.≤ m ↔ n B.≤ m
-A↔B n m = {!!}
+to (A↔B n m) = A→B n m
+from (A↔B n m) = B→A
+left-inverse-of (A↔B n m) a =  ABA n m a
+right-inverse-of (A↔B n m) b = BAB n m b
 
 {- ??? 2.7 Now show that you can translate between B.≤ and C.≤.
    (2 MARKS) -}
+   
+luyao :  {n m : ℕ} -> n C.≤ m -> (suc n) C.≤ (suc m)
+luyao C.≤-refl =  C.≤-refl
+luyao (C.≤-step c) = C.≤-step (luyao c)
 
 B→C : {n m : ℕ} -> n B.≤ m -> n C.≤ m
-B→C = {!!}
+B→C {.zero} {zero} B.z≤n = C.≤-refl
+B→C {.zero} {suc m} B.z≤n = C.≤-step ( B→C  B.z≤n )
+B→C {.(suc _)} {.(suc _)} (B.s≤s b) = luyao (B→C b)
+
+B-refl : {n :  ℕ } -> n B.≤ n
+B-refl {zero} = B.z≤n
+B-refl {suc n} = B.s≤s B-refl
+
+B-suc : {n m :  ℕ } -> n B.≤ m -> n B.≤ suc m
+B-suc B.z≤n = B.z≤n
+B-suc (B.s≤s b) = B.s≤s (B-suc  b )
 
 C→B : {n m : ℕ} -> n C.≤ m -> n B.≤ m
-C→B = {!!}
+C→B C.≤-refl = B-refl
+C→B (C.≤-step c) = B-suc (C→B c)
 
 {- ??? 2.8 Use the above to get a cheap proof of transitivity
        for C.≤. (First try to do it by hand; it's not so easy!)
    (1 MARK) -}
 
 C-transitive : ∀ {n m k} → n C.≤ m -> m C.≤ k -> n C.≤ k
-C-transitive p q = {!!}
+C-transitive C.≤-refl C.≤-refl = C.≤-refl
+C-transitive C.≤-refl (C.≤-step q) = C.≤-step  q
+C-transitive (C.≤-step p) C.≤-refl = C.≤-step p
+C-transitive (C.≤-step p) (C.≤-step q) =  C.≤-step (C-transitive (C.≤-step p) q )
 
 {- ??? 2.9 Now show that C.≤ is also propositional, and finish off the
        isomorphism between B.≤ and C.≲.
@@ -190,16 +224,25 @@ C-transitive p q = {!!}
 
 -- HINT: You might find the following lemma, and its lemma, useful:
 
+C-hewen : {n m :  ℕ } -> suc n C.≤ m -> n C.≤ m
+C-hewen C.≤-refl = C.≤-step C.≤-refl
+C-hewen (C.≤-step c) = C.≤-step (C-hewen c)
+
 ¬sucn≤n : {n : ℕ} -> ¬ (suc  n C.≤ n)
-¬sucn≤n {n} p = {!!} where
-  peel : ∀ {n m} → suc n C.≤ suc m → n C.≤ m
-  peel = {!!}
+¬sucn≤n {suc n} p = ¬sucn≤n (peel p)
+  where
+    peel : ∀ {n m} → suc n C.≤ suc m → n C.≤ m
+    peel C.≤-refl = C.≤-refl
+    peel (C.≤-step s) = C-hewen s
 
 C-propositional : {n m : ℕ} → isPropositional (n C.≤ m)
 C-propositional = {!!}
 
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
-B↔C n m = {!!}
+to (B↔C n m) = B→C
+from (B↔C n m) = C→B 
+left-inverse-of (B↔C n m) b = {!!}
+right-inverse-of (B↔C n m) c = {!!}
 
 {- ??? 2.10 Show that ↔ is transitive, and hence that A.≤ and C.≲ are
        isomorphic.

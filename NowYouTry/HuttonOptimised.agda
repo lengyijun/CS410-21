@@ -122,7 +122,13 @@ remove+0-sound (ifE e then e' else e'')
 -- is limited).
 
 eval-if : ∀ {t} → TExpr t -> TExpr t
-eval-if e = {!!}
+eval-if (num x) = num x
+eval-if (bit x) = bit x
+eval-if (e +E e₁) = eval-if e +E eval-if e₁
+eval-if (ifE e then e' else e'' ) with eval-if e
+... | bit false = eval-if e''
+... | bit true = eval-if e'
+... | ee = ifE ee  then (eval-if e') else (eval-if e'')
 
 -- Prove that it is sound.
 
@@ -130,5 +136,11 @@ eval-if e = {!!}
 -- case, to get something to rewrite along (after symming it).
 
 eval-if-sound : ∀ {t} → (e : TExpr t) -> teval (eval-if e) ≡ teval e
-eval-if-sound e = {!!}
+eval-if-sound (num x) = refl
+eval-if-sound (bit x) = refl
+eval-if-sound (e +E e₁) rewrite eval-if-sound e | eval-if-sound e₁ =  refl
+eval-if-sound (ifE e then e₁ else e₂) with eval-if e | eval-if-sound e | eval-if-sound e₁ | eval-if-sound e₂
+... | bit false | p | p1 | p2 rewrite sym p = p2
+... | bit true | p | p1 | p2 rewrite sym p = p1
+... | ifE x then x₁ else x₂ | p | p1 | p2 rewrite p | p1 | p2 = refl
 
