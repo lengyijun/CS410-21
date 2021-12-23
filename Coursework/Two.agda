@@ -225,16 +225,12 @@ C-transitive (C.≤-step p) (C.≤-step q) =  C.≤-step (C-transitive (C.≤-st
 
 -- HINT: You might find the following lemma, and its lemma, useful:
 
-C-hewen : {n m :  ℕ } -> suc n C.≤ m -> n C.≤ m
-C-hewen C.≤-refl = C.≤-step C.≤-refl
-C-hewen (C.≤-step c) = C.≤-step (C-hewen c)
-
 ¬sucn≤n : {n : ℕ} -> ¬ (suc  n C.≤ n)
 ¬sucn≤n {suc n} p = ¬sucn≤n (peel p)
   where
     peel : ∀ {n m} → suc n C.≤ suc m → n C.≤ m
     peel C.≤-refl = C.≤-refl
-    peel (C.≤-step s) = C-hewen s
+    peel (C.≤-step s) = C-transitive (C.≤-step C.≤-refl) s
 
 C-propositional : {n m : ℕ} → isPropositional (n C.≤ m)
 C-propositional = {!!}
