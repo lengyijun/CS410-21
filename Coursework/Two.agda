@@ -239,46 +239,31 @@ C-propositional C.≤-refl (C.≤-step y) = ⊥-elim ( ¬sucn≤n y )
 C-propositional (C.≤-step x) C.≤-refl = ⊥-elim ( ¬sucn≤n x )
 C-propositional (C.≤-step x) (C.≤-step y) rewrite C-propositional x y = refl
 
-hewen : {n m : ℕ} -> (b : n B.≤ m) -> C→B (C.s≤s (B→C b)) ≡ B.s≤s b
-hewen {.zero} {zero} B.z≤n = refl
-hewen {.zero} {suc m} B.z≤n rewrite hewen {zero} {m} B.z≤n = refl
-hewen {.(suc m)} {.(suc n)} (B.s≤s {m} {n = n} b) = {!!}
-
-qinx : {n m o : ℕ } -> (x : n B.≤ m ) -> (y : m B.≤ o) -> B.s≤s (B.transitive x y ) ≡ B.transitive (B.s≤s x) (B.s≤s y)
-qinx x y = refl
-
-luyao : {n m : ℕ } -> (c : n C.≤ m ) -> B.s≤s (C→B c) ≡ C→B (C.s≤s c)
-luyao C.≤-refl = refl
-luyao (C.≤-step {zero} c) = {!!}
-luyao (C.≤-step {suc n} c) = {!!}
-
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
-to (B↔C n m) = B→C
-from (B↔C n m) = C→B 
-left-inverse-of (B↔C .zero zero) B.z≤n = refl
-left-inverse-of (B↔C .zero (suc zero)) B.z≤n = refl
-left-inverse-of (B↔C .zero (suc (suc m))) B.z≤n rewrite left-inverse-of (B↔C zero (suc m)) B.z≤n = refl
-left-inverse-of (B↔C .(suc m) .(suc n)) (B.s≤s {m} {n = n} b) = {!!}
-right-inverse-of (B↔C zero .zero) C.≤-refl = refl
-right-inverse-of (B↔C (suc n) .(suc n)) C.≤-refl rewrite right-inverse-of (B↔C n n) C.≤-refl = refl
-right-inverse-of (B↔C n .(suc n₁)) (C.≤-step {n₁} c) = {!!}
+to (B↔C x m) = B→C
+from (B↔C x m) = C→B
+left-inverse-of (B↔C n m) x = B.propositional (from (B↔C n m) (to  ((B↔C n m))  x ) ) x
+right-inverse-of (B↔C n m) x = {!!}
 
 {- ??? 2.10 Show that ↔ is transitive, and hence that A.≤ and C.≲ are
        isomorphic.
    (1 MARK) -}
 
 ↔-trans : {X Y Z : Set} -> X ↔ Y -> Y ↔ Z -> X ↔ Z
-↔-trans p q = {!!}
+to (↔-trans p q) = to q ∘′ to p
+from (↔-trans p q) = from p ∘′ from q
+left-inverse-of (↔-trans p q) x rewrite left-inverse-of q (to p x)  = left-inverse-of p x
+right-inverse-of (↔-trans p q) x rewrite right-inverse-of p (from q x) = right-inverse-of q x
 
 A↔C : {n m : ℕ} -> n A.≤ m ↔ n C.≤ m
-A↔C = {!!}
+A↔C {n} {m} = ↔-trans ( A↔B n m ) (B↔C n m)
 
 {- ??? 2.11 Finally, let's show that two randomly chosen large numbers
        are related by C.≤.
    (1 MARK) -}
 
 myProof : 278 C.≤ 13831
-myProof = {!!}
+myProof = to A↔C tt
 
 -- TERMINOLOGY: this proof method, where we swap between a definition
 -- that reduces, and one which we can pattern match on, is usually
