@@ -92,11 +92,17 @@ module A where
          proofs of it are equal.
      (1 MARK) -}
 
+  ⊤-propositional : isPropositional ⊤
+  ⊤-propositional tt tt = refl
+
+  ⊥-propositional : isPropositional ⊥
+  ⊥-propositional () y
+  
   propositional : (n m : ℕ) → isPropositional (n ≤ m)
-  propositional zero zero =  {!!}
-  propositional zero (suc y) = {!!}
-  propositional (suc x) zero = {!!}
-  propositional (suc x) (suc y) = {!!}
+  propositional zero zero =  ⊤-propositional
+  propositional zero (suc y) = ⊤-propositional
+  propositional (suc x) zero = ⊥-propositional
+  propositional (suc x) (suc y) = propositional x y
 
 ------------------
 module B where
@@ -233,7 +239,10 @@ C-transitive (C.≤-step p) (C.≤-step q) =  C.≤-step (C-transitive (C.≤-st
     peel (C.≤-step s) = C-transitive (C.≤-step C.≤-refl) s
 
 C-propositional : {n m : ℕ} → isPropositional (n C.≤ m)
-C-propositional = {!!}
+C-propositional C.≤-refl C.≤-refl = refl
+C-propositional C.≤-refl (C.≤-step y) = ⊥-elim ( ¬sucn≤n y )
+C-propositional (C.≤-step x) C.≤-refl = ⊥-elim ( ¬sucn≤n x )
+C-propositional (C.≤-step x) (C.≤-step y) rewrite C-propositional x y = refl
 
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
 to (B↔C n m) = B→C
