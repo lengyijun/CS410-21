@@ -135,9 +135,7 @@ module B where
   transitive z≤n q = z≤n
   transitive (s≤s p) (s≤s q) = s≤s (transitive p q)
 
-  bsuc : ∀ {n} -> n ≤ suc n
-  bsuc {zero} = z≤n 
-  bsuc {suc n} = s≤s ( bsuc {n})
+
 
 ------------------
 module C where
@@ -206,14 +204,16 @@ B→C {.zero} {zero} B.z≤n = C.≤-refl
 B→C {.zero} {suc m} B.z≤n = C.≤-step ( B→C  B.z≤n )
 B→C {.(suc _)} {.(suc _)} (B.s≤s b) = luyao (B→C b)
 
+
+
 B-refl : {n :  ℕ } -> n B.≤ n
 B-refl {zero} = B.z≤n
 B-refl {suc n} = B.s≤s B-refl
 
-
 C→B : {n m : ℕ} -> n C.≤ m -> n B.≤ m
 C→B C.≤-refl = B-refl
-C→B (C.≤-step c) = B.transitive ( C→B c) B.bsuc
+C→B (C.≤-step {zero} c) = B.transitive (C→B c) B.z≤n
+C→B (C.≤-step {suc n} c) = B.transitive (C→B c) ( B.s≤s ( C→B (C.≤-step C.≤-refl) ) )
 
 {- ??? 2.8 Use the above to get a cheap proof of transitivity
        for C.≤. (First try to do it by hand; it's not so easy!)
@@ -244,13 +244,17 @@ C-propositional C.≤-refl (C.≤-step y) = ⊥-elim ( ¬sucn≤n y )
 C-propositional (C.≤-step x) C.≤-refl = ⊥-elim ( ¬sucn≤n x )
 C-propositional (C.≤-step x) (C.≤-step y) rewrite C-propositional x y = refl
 
+
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
 to (B↔C n m) = B→C
 from (B↔C n m) = C→B 
 left-inverse-of (B↔C .zero zero) B.z≤n = refl
-left-inverse-of (B↔C .zero (suc m)) B.z≤n rewrite left-inverse-of (B↔C zero  m) B.z≤n  = refl
-left-inverse-of (B↔C .(suc _) .(suc _)) (B.s≤s b) = {!!}
-right-inverse-of (B↔C n m) c = {!!}
+left-inverse-of (B↔C .zero (suc zero)) B.z≤n = refl
+left-inverse-of (B↔C .zero (suc (suc m))) B.z≤n rewrite left-inverse-of (B↔C zero (suc m)) B.z≤n = refl
+left-inverse-of (B↔C .(suc m) .(suc n)) (B.s≤s {m} {n = n} b) = {!!}
+right-inverse-of (B↔C zero .zero) C.≤-refl = refl
+right-inverse-of (B↔C (suc n) .(suc n)) C.≤-refl rewrite right-inverse-of (B↔C n n) C.≤-refl = refl
+right-inverse-of (B↔C n .(suc n₁)) (C.≤-step {n₁} c) = {!!}
 
 {- ??? 2.10 Show that ↔ is transitive, and hence that A.≤ and C.≲ are
        isomorphic.
