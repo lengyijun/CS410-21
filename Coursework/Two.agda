@@ -204,13 +204,9 @@ B→C {.zero} {suc m} B.z≤n = C.≤-step ( B→C  B.z≤n )
 B→C {.(suc _)} {.(suc _)} (B.s≤s b) = C.s≤s (B→C b)
 
 
-
-B-refl : {n :  ℕ } -> n B.≤ n
-B-refl {zero} = B.z≤n
-B-refl {suc n} = B.s≤s B-refl
-
 C→B : {n m : ℕ} -> n C.≤ m -> n B.≤ m
-C→B C.≤-refl = B-refl
+C→B {zero} C.≤-refl = B.z≤n
+C→B {suc n} C.≤-refl = B.s≤s (C→B C.≤-refl)
 C→B (C.≤-step {zero} c) = B.transitive (C→B c) B.z≤n
 C→B (C.≤-step {suc n} c) = B.transitive (C→B c) ( B.s≤s ( C→B (C.≤-step C.≤-refl) ) )
 
