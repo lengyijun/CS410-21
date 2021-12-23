@@ -248,6 +248,14 @@ hewen {.zero} {zero} B.z≤n = refl
 hewen {.zero} {suc m} B.z≤n rewrite hewen {zero} {m} B.z≤n = refl
 hewen {.(suc m)} {.(suc n)} (B.s≤s {m} {n = n} b) = {!!}
 
+qinx : {n m o : ℕ } -> (x : n B.≤ m ) -> (y : m B.≤ o) -> B.s≤s (B.transitive x y ) ≡ B.transitive (B.s≤s x) (B.s≤s y)
+qinx x y = refl
+
+luyao : {n m : ℕ } -> (c : n C.≤ m ) -> B.s≤s (C→B c) ≡ C→B (C.s≤s c)
+luyao C.≤-refl = refl
+luyao (C.≤-step {zero} c) = {!!}
+luyao (C.≤-step {suc n} c) = {!!}
+
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
 to (B↔C n m) = B→C
 from (B↔C n m) = C→B 
