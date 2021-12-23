@@ -152,6 +152,9 @@ module C where
 
   {- ??? 2.4 Again, to get a feel for this definition, show that 17 ≤ 42.
      (1 MARK) -}
+  s≤s :  {n m : ℕ} -> n ≤ m -> (suc n) ≤ (suc m)
+  s≤s ≤-refl =  ≤-refl
+  s≤s (≤-step c) = ≤-step (s≤s c)
 
   17≤42 : 17 ≤ 42
   17≤42 =  ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step ( ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step  (  ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step ( ≤-step ( ≤-step ( ≤-step (  ≤-step (  ≤-step ( ≤-step  ( ≤-step ≤-refl  )  ) ) ) ) ) ) ) ) ) ) )  )  ) ) ) ) ) ) ) ) ) ) )
@@ -194,15 +197,11 @@ right-inverse-of (A↔B n m) b = BAB n m b
 
 {- ??? 2.7 Now show that you can translate between B.≤ and C.≤.
    (2 MARKS) -}
-   
-luyao :  {n m : ℕ} -> n C.≤ m -> (suc n) C.≤ (suc m)
-luyao C.≤-refl =  C.≤-refl
-luyao (C.≤-step c) = C.≤-step (luyao c)
 
 B→C : {n m : ℕ} -> n B.≤ m -> n C.≤ m
 B→C {.zero} {zero} B.z≤n = C.≤-refl
 B→C {.zero} {suc m} B.z≤n = C.≤-step ( B→C  B.z≤n )
-B→C {.(suc _)} {.(suc _)} (B.s≤s b) = luyao (B→C b)
+B→C {.(suc _)} {.(suc _)} (B.s≤s b) = C.s≤s (B→C b)
 
 
 
@@ -244,6 +243,10 @@ C-propositional C.≤-refl (C.≤-step y) = ⊥-elim ( ¬sucn≤n y )
 C-propositional (C.≤-step x) C.≤-refl = ⊥-elim ( ¬sucn≤n x )
 C-propositional (C.≤-step x) (C.≤-step y) rewrite C-propositional x y = refl
 
+hewen : {n m : ℕ} -> (b : n B.≤ m) -> C→B (C.s≤s (B→C b)) ≡ B.s≤s b
+hewen {.zero} {zero} B.z≤n = refl
+hewen {.zero} {suc m} B.z≤n rewrite hewen {zero} {m} B.z≤n = refl
+hewen {.(suc m)} {.(suc n)} (B.s≤s {m} {n = n} b) = {!!}
 
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
 to (B↔C n m) = B→C
