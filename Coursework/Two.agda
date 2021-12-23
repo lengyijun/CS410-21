@@ -129,6 +129,10 @@ module B where
   transitive z≤n q = z≤n
   transitive (s≤s p) (s≤s q) = s≤s (transitive p q)
 
+  bsuc : ∀ {n} -> n ≤ suc n
+  bsuc {zero} = z≤n 
+  bsuc {suc n} = s≤s ( bsuc {n})
+
 ------------------
 module C where
 ------------------
@@ -200,13 +204,10 @@ B-refl : {n :  ℕ } -> n B.≤ n
 B-refl {zero} = B.z≤n
 B-refl {suc n} = B.s≤s B-refl
 
-B-suc : {n m :  ℕ } -> n B.≤ m -> n B.≤ suc m
-B-suc B.z≤n = B.z≤n
-B-suc (B.s≤s b) = B.s≤s (B-suc  b )
 
 C→B : {n m : ℕ} -> n C.≤ m -> n B.≤ m
 C→B C.≤-refl = B-refl
-C→B (C.≤-step c) = B-suc (C→B c)
+C→B (C.≤-step c) = B.transitive ( C→B c) B.bsuc
 
 {- ??? 2.8 Use the above to get a cheap proof of transitivity
        for C.≤. (First try to do it by hand; it's not so easy!)
