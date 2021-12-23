@@ -242,7 +242,9 @@ C-propositional = {!!}
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
 to (B↔C n m) = B→C
 from (B↔C n m) = C→B 
-left-inverse-of (B↔C n m) b = {!!}
+left-inverse-of (B↔C .zero zero) B.z≤n = refl
+left-inverse-of (B↔C .zero (suc m)) B.z≤n rewrite left-inverse-of (B↔C zero  m) B.z≤n  = refl
+left-inverse-of (B↔C .(suc _) .(suc _)) (B.s≤s b) = {!!}
 right-inverse-of (B↔C n m) c = {!!}
 
 {- ??? 2.10 Show that ↔ is transitive, and hence that A.≤ and C.≲ are
