@@ -147,4 +147,12 @@ eqMonotoneMap {P} {Q} {f} {g} refl = cong (λ z → record { fun = fun g; monoto
                                           (ext λ x → ext (λ y → ext λ p → propositional Q _ _))
 
 PREORDER : Category
-PREORDER = ?
+Obj PREORDER = Preorder
+Hom PREORDER = MonotoneMap
+fun (Category.id PREORDER) = λ x -> x
+monotone (Category.id PREORDER) x y m = m
+fun (comp PREORDER ab bc) = fun bc ∘′ fun ab
+monotone (comp PREORDER ab bc) x y xy = monotone bc _ _  (monotone ab _ _ xy)
+assoc PREORDER {A} {B} {C} {D} {f} {g} {h} = eqMonotoneMap refl
+identityˡ PREORDER {A} {B} {f} = eqMonotoneMap refl
+identityʳ PREORDER {A} {B} {f} = eqMonotoneMap refl
