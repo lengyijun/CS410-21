@@ -242,8 +242,8 @@ C-propositional (C.≤-step x) (C.≤-step y) rewrite C-propositional x y = refl
 B↔C : (n m : ℕ) -> n B.≤ m ↔ n C.≤ m
 to (B↔C x m) = B→C
 from (B↔C x m) = C→B
-left-inverse-of (B↔C n m) x = B.propositional (from (B↔C n m) (to  ((B↔C n m))  x ) ) x
-right-inverse-of (B↔C n m) x = {!!}
+left-inverse-of (B↔C n m) x = B.propositional  _ _ 
+right-inverse-of (B↔C n m) x = C-propositional _ _
 
 {- ??? 2.10 Show that ↔ is transitive, and hence that A.≤ and C.≲ are
        isomorphic.
