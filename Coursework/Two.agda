@@ -440,8 +440,7 @@ module Untyped where
   eval (store x then x₁) = do
     y ← eval x
     evalPut y
-    y₁ ← eval x₁
-    return y₁
+    eval x₁
   eval (x +E x₁) = do
      num y ← eval x where _ → fail
      num y₁ ← eval x₁ where _ → fail
