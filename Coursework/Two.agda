@@ -360,10 +360,14 @@ module Untyped where
      (2 MARKS) -}
 
   return : {A : Set} -> A -> EvalM A
-  return = {!!}
+  return a m = m , just a
 
+  
   _>>=_ : {A B : Set} -> EvalM A -> (A -> EvalM B) -> EvalM B
-  (x >>= f) ρ = {!!}
+  (ea >>= h) m with ea m
+  ... | fst , just a = h a fst
+  ... | fst , nothing = fst , nothing
+ 
 
   _>>_ : {A B : Set} -> EvalM A -> EvalM B -> EvalM B
   x >> y = x >>= (λ _ → y)
@@ -376,27 +380,31 @@ module Untyped where
   -}
 
   returnBind : ∀ {A B} → (a : A)(h : A → EvalM B) → return a >>= h ≡ h a
-  returnBind = {!!}
+  returnBind {A} {B} a h = refl
 
   bindReturn : ∀ {A}(m : EvalM A) → ∀ ρ → (m >>= return) ρ ≡ m ρ
-  bindReturn = {!!}
+  bindReturn {A} m ρ with m ρ
+  ... | fst , just x = refl
+  ... | fst , nothing = refl
 
   bindBind : ∀ {A B C} (m : EvalM A)(g : A → EvalM B)(h : B → EvalM C) →
              ∀ ρ → ((m >>= g) >>= h) ρ ≡ (m >>= (λ x → g x >>= h)) ρ
-  bindBind = {!!}
+  bindBind {A} {B} {C} a ab bc ρ with a ρ
+  ... | fst , just x = refl
+  ... | fst , nothing = refl
 
   {- ??? 2.14 Now implement the specific operations that this monad
          supports: failing, getting and storing.
      (1 MARK) -}
 
   fail : {A : Set} -> EvalM A
-  fail = {!!}
+  fail = λ x ->  x , nothing
 
   evalGet : EvalM Val
-  evalGet = {!!}
+  evalGet = λ x ->  x , just x
 
   evalPut : Val -> EvalM ⊤
-  evalPut = {!!}
+  evalPut new  = λ x ->  new , just tt
 
   {- ??? 2.15 State the following properties of evalGet and evalPut as equations, and prove them:
 
@@ -426,7 +434,30 @@ module Untyped where
   -- `f` if `e` didn't match `c x`
 
   eval : Expr -> EvalM Val
-  eval = {!!}
+  eval (num x) = return ( num x )
+  eval (bit x) = return ( bit x)
+  eval get = evalGet
+  eval (store x then x₁) = do
+    y ← eval x
+    evalPut y
+    y₁ ← eval x₁
+    return y₁
+  eval (x +E x₁) = do
+     num y ← eval x where _ → fail
+     num y₁ ← eval x₁ where _ → fail
+     return ( num (y + y₁) )
+  eval (x *E x₁) = do
+     num y ← eval x where _ → fail
+     num y₁ ← eval x₁ where _ → fail
+     return ( num (y * y₁) )
+  eval (x <E x₁) = do
+     num y ← eval x where _ → fail
+     num y₁ ← eval x₁ where _ → fail
+     return ( bit ( y <ᵇ y₁ ) )  
+  eval (ifE x then x₁ else x₂) = do
+     bit b ←  eval x where _ → fail
+     if b then eval x₁ else eval x₂
+
 
   -- Here are some test cases you can comment in.  Let's only look at
   -- the produced value, and starting with 0 in the store.
