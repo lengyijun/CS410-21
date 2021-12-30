@@ -501,7 +501,14 @@ module Untyped where
   -- HINT: One should be really easy, if you've set up things right.
 
   getput : ∀ e ρ → eval (store get then e) ρ ≡ eval e ρ
-  getput = {!!}
+  getput (num x) ρ = refl
+  getput (bit x) ρ = refl
+  getput get ρ = refl
+  getput (store e then e₁) ρ = refl
+  getput (e +E e₁) ρ = refl
+  getput (e *E e₁) ρ = refl
+  getput (e <E e₁) ρ = refl
+  getput (ifE e then e₁ else e₂) ρ = refl
 
   putget : ∀ e ρ → proj₂ (eval (store e then get) ρ) ≡ proj₂ (eval e ρ)
   putget = {!!}
