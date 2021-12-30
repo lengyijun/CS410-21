@@ -419,8 +419,8 @@ module Untyped where
   evalGetPut :  evalGet >>= evalPut  ≡ return tt
   evalGetPut = refl
 
-  evalPutGet : ∀ (ρ : Memory) → {!!}
-  evalPutGet = {!!}
+  evalPutGet : ∀ (ρ : Memory) → evalPut ρ >>= (λ t -> evalGet)  ≡ λ x -> ρ , just ρ 
+  evalPutGet ρ = refl
 
 
   {- ??? 2.16 Use do-notation to implement evaluation.
