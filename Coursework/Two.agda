@@ -365,8 +365,8 @@ module Untyped where
   
   _>>=_ : {A B : Set} -> EvalM A -> (A -> EvalM B) -> EvalM B
   (ea >>= h) m with ea m
-  ... | fst , just a = h a fst
-  ... | fst , nothing = fst , nothing
+  ... | m' , just a = h a m'
+  ... | m' , nothing = m' , nothing
  
 
   _>>_ : {A B : Set} -> EvalM A -> EvalM B -> EvalM B
@@ -416,8 +416,8 @@ module Untyped where
 
   {- HINT: If formulated correctly, these should be very easy to prove. -}
 
-  evalGetPut : {!!}
-  evalGetPut = {!!}
+  evalGetPut :  evalGet >>= evalPut  ≡ return tt
+  evalGetPut = refl
 
   evalPutGet : ∀ (ρ : Memory) → {!!}
   evalPutGet = {!!}
