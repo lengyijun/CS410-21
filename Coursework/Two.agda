@@ -637,36 +637,54 @@ module Typed where
   -- COMMENT: You might find this is already easier than before.
 
   return : {A : Set} → A -> EvalM A
-  return = {!!}
+  return {A} a m = m , a
 
   _>>=_ : {A B : Set} → EvalM A -> (A -> EvalM B) -> EvalM B
-  (x >>= f) ρ = {!!}
+  (x >>= f) ρ with x ρ
+  ... | fst , snd = f snd fst
 
   _>>_ : {A B : Set} → EvalM A -> EvalM B -> EvalM B
   x >> y = x >>= (λ _ → y)
 
   returnBind : ∀ {A B : Set} → (a : A)(h : A → EvalM B) → (return a) >>= h ≡ h a
-  returnBind = {!!}
+  returnBind a h = refl
 
   bindReturn : ∀ {A : Set} → (m : EvalM A) → ∀ ρ → (m >>= return) ρ ≡ m ρ
-  bindReturn = {!!}
+  bindReturn m ρ = refl
 
   bindBind : ∀ {A B C : Set}(m : EvalM A)(g : A → EvalM B)(h : B → EvalM C) →
              ∀ ρ → ((m >>= g) >>= h) ρ ≡ (m >>= (λ x → (g x) >>= h)) ρ
-  bindBind = {!!}
+  bindBind m g h ρ = refl
 
   {- ??? 2.19 Now implement eval again in our glorious typed setting.
          Along the way, implement the get and put operations.
      (3 MARKS) -}
 
   evalGet : EvalM (Val nat)
-  evalGet = {!!}
+  evalGet m = m , m 
 
   evalPut : Val nat -> EvalM ⊤
-  evalPut = {!!}
+  evalPut new m = new , tt
 
   eval : ∀ {t} → Expr t -> EvalM (Val t)
-  eval = {!!}
+  eval (num x) m = m , x
+  eval (bit x) m = m , x
+  eval get = evalGet
+  eval (store x then x₁) m with eval x m
+  eval (store x then x₁) m | m' , x' with evalPut x' m'
+  eval (store x then x₁) m | m' , x' | m'' , ⊤ = eval x₁ m''
+  eval (x +E y) m with eval x m
+  eval (x +E y) m | m' , x' with eval y m'
+  eval (x +E y) m | m' , x' | m'' , y' = m'' , x' + y'
+  eval (x *E y) m with eval x m
+  eval (x *E y) m | m' , x' with eval y m'
+  eval (x *E y) m | m' , x' | m'' , y' = m'' , x' * y'
+  eval (x <E y) m with eval x m
+  eval (x <E y) m | m' , x' with eval y m'
+  eval (x <E y) m | m' , x' | m'' , y' = m'' , (x' <ᵇ y')
+  eval (ifE x then x₁ else x₂) m with eval x m
+  eval (ifE x then x₁ else x₂) m | m' , false = eval x₂ m' 
+  eval (ifE x then x₁ else x₂) m | m' , true = eval x₁ m'
 
   -- Note that we now always get a value! No more nothing
 
@@ -683,7 +701,7 @@ module Typed where
   eval' : ∀ {t} → Expr t -> Val t
   eval' e = eval₀ e 0
 
-  {-
+  
   _ : eval' e1 ≡ 9
   _ = refl
 
@@ -710,8 +728,7 @@ module Typed where
 
   _ : eval' e8 ≡ 5
   _ = refl
-  -}
-
+  
 
 
   {- ??? 2.20 Relate the typed and untyped languages by showing how one can
