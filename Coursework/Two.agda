@@ -464,7 +464,7 @@ module Untyped where
   eval' : Expr -> Maybe Val
   eval' e = proj₂ (eval e (num 0))
 
-  {-
+  
   _ : eval' e1 ≡ just (num 9)
   _ = refl
 
@@ -491,7 +491,7 @@ module Untyped where
 
   _ : eval' e8 ≡ just (num 5)
   _ = refl
-  -}
+  
 
 
   {- ??? 2.17 Prove the we can prove something about our language, by
@@ -511,7 +511,44 @@ module Untyped where
   getput (ifE e then e₁ else e₂) ρ = refl
 
   putget : ∀ e ρ → proj₂ (eval (store e then get) ρ) ≡ proj₂ (eval e ρ)
-  putget = {!!}
+  putget (num x) ρ = refl
+  putget (bit x) ρ = refl
+  putget get ρ = refl
+  putget (store e then e₁) ρ with eval e ρ
+  putget (store e then e₁) ρ | fst , just x with eval e₁ x
+  putget (store e then e₁) ρ | fst , just x | fst₁ , just x₁ = refl
+  putget (store e then e₁) ρ | fst , just x | fst₁ , nothing = refl
+  putget (store e then e₁) ρ | fst , nothing = refl
+  putget (e +E e₁) ρ with eval e ρ 
+  putget (e +E e₁) ρ  | fst , just (num x) with eval e₁ fst
+  putget (e +E e₁) ρ  | fst , just (num x) | fst₁ , just (num x₁) = refl
+  putget (e +E e₁) ρ  | fst , just (num x) | fst₁ , just (bit x₁) = refl
+  putget (e +E e₁) ρ  | fst , just (num x) | fst₁ , nothing = refl
+  putget (e +E e₁) ρ  | fst , just (bit x) = refl
+  putget (e +E e₁) ρ  | fst , nothing = refl
+  putget (e *E e₁) ρ with eval e ρ
+  putget (e *E e₁) ρ | fst , just (num x) with eval e₁ fst
+  putget (e *E e₁) ρ | fst , just (num x) | fst₁ , just (num x₁) = refl
+  putget (e *E e₁) ρ | fst , just (num x) | fst₁ , just (bit x₁) = refl
+  putget (e *E e₁) ρ | fst , just (num x) | fst₁ , nothing = refl
+  putget (e *E e₁) ρ | fst , just (bit x) = refl
+  putget (e *E e₁) ρ | fst , nothing = refl
+  putget (e <E e₁) ρ with eval e ρ
+  putget (e <E e₁) ρ | fst , just (num x) with eval e₁ fst
+  putget (e <E e₁) ρ | fst , just (num x) | fst₁ , just (num x₁) = refl
+  putget (e <E e₁) ρ | fst , just (num x) | fst₁ , just (bit x₁) = refl
+  putget (e <E e₁) ρ | fst , just (num x) | fst₁ , nothing = refl
+  putget (e <E e₁) ρ | fst , just (bit x) = refl
+  putget (e <E e₁) ρ | fst , nothing = refl
+  putget (ifE e then e₁ else e₂) ρ with eval e ρ
+  putget (ifE e then e₁ else e₂) ρ | fst , just (num x) = refl
+  putget (ifE e then e₁ else e₂) ρ | fst , just (bit false) with eval e₂ fst
+  putget (ifE e then e₁ else e₂) ρ | fst , just (bit false) | fst₁ , just x = refl
+  putget (ifE e then e₁ else e₂) ρ | fst , just (bit false) | fst₁ , nothing = refl
+  putget (ifE e then e₁ else e₂) ρ | fst , just (bit true) with eval e₁ fst
+  putget (ifE e then e₁ else e₂) ρ | fst , just (bit true) | fst₁ , just x = refl
+  putget (ifE e then e₁ else e₂) ρ | fst , just (bit true) | fst₁ , nothing = refl
+  putget (ifE e then e₁ else e₂) ρ | fst , nothing = refl
 
 
 ---------------------
