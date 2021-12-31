@@ -736,24 +736,41 @@ module Typed where
      (1 MARK) -}
 
   erase : {t : Ty} → Expr t → Untyped.Expr
-  erase = {!!}
+  erase (num x) = Untyped.num x
+  erase (bit x) = Untyped.bit x
+  erase get = Untyped.get
+  erase (store x then x₁) = Untyped.store ( erase x ) then ( erase x₁ )
+  erase (x +E x₁) = erase x Untyped.+E erase x₁
+  erase (x *E x₁) = erase x Untyped.*E erase x₁
+  erase (x <E x₁) = erase x Untyped.<E erase x₁
+  erase (ifE x then x₁ else x₂) =  Untyped.ifE erase x then erase x₁ else erase x₂
 
   eraseVal : {t : Ty} → Val t → Untyped.Val
-  eraseVal = {!!}
+  eraseVal {nat} x = Untyped.num x
+  eraseVal {bool} x = Untyped.bit x 
 
   eraseMemory : Memory → Untyped.Memory
-  eraseMemory = {!!}
+  eraseMemory m = Untyped.num m
 
   {- ??? 2.21 Now show that evaluation of typed and their erased
          untyped counterparts agree.  Another way to phrase this is to
          say that we get the same result if we first erase and then
-         evaluate, or if we first evaluate, and then erase. Fill in
+          evaluate, or if we first evaluate, and then erase. Fill in
          the remaining holes in the type to say this, and prove the
          statement.
      (3 MARKS) -}
 
-  welltyped-dont-go-wrong : {t : Ty} → (e : Expr t) → (ρ : Memory) → Untyped.eval {!!} {!!} ≡ ({!!} , just {!!})
-  welltyped-dont-go-wrong = {!!}
+  welltyped-dont-go-wrong : {t : Ty} → (e : Expr t) → (ρ : Memory) → Untyped.eval (erase e) (eraseMemory ρ) ≡ (eraseMemory (proj₁ (eval e ρ)) , just (eraseVal ( proj₂ (eval e ρ))))
+  welltyped-dont-go-wrong (num x) ρ = refl
+  welltyped-dont-go-wrong (bit x) ρ = refl
+  welltyped-dont-go-wrong get ρ = refl
+  welltyped-dont-go-wrong (store e then e₁) ρ rewrite welltyped-dont-go-wrong e ρ = welltyped-dont-go-wrong e₁ (proj₂ (eval e ρ)) 
+  welltyped-dont-go-wrong (e +E e₁) ρ rewrite welltyped-dont-go-wrong e ρ | welltyped-dont-go-wrong e₁ (proj₁ (eval e ρ)) = refl
+  welltyped-dont-go-wrong (e *E e₁) ρ rewrite welltyped-dont-go-wrong e ρ | welltyped-dont-go-wrong e₁ (proj₁ (eval e ρ)) = refl
+  welltyped-dont-go-wrong (e <E e₁) ρ rewrite welltyped-dont-go-wrong e ρ | welltyped-dont-go-wrong e₁ (proj₁ (eval e ρ)) = refl
+  welltyped-dont-go-wrong (ifE e then e₁ else e₂) ρ  rewrite welltyped-dont-go-wrong e ρ with eval e ρ
+  ... | fst , false = welltyped-dont-go-wrong e₂ _
+  ... | fst , true = welltyped-dont-go-wrong e₁ _
 
 
   {- ??? 2.22 As you will have noticed, there is quite a lot of
