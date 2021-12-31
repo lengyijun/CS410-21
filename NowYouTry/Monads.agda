@@ -11,6 +11,7 @@ open import Function hiding (_∘_; id)
 
 open import Lectures.FunctorsAndNatTransformations
 open import Lectures.Categories
+open import Lectures.Logic
 
 open import Common.Category hiding (Monad; idFunctor; compFunctor)
 open import Common.Category.Solver
@@ -240,3 +241,28 @@ module _ where
   returnJoin LIST-MONAD = {!!}
   mapReturnJoin LIST-MONAD = {!!}
   joinJoin LIST-MONAD = {!!}
+
+  negimply : { A B : Set } -> ( A -> B )  -> (¬ B -> ¬ A)
+  negimply a2b nb a = nb (a2b a)
+  
+  NegNeg : Functor SET SET
+  Functor.act NegNeg x = ¬ ¬ x
+  Functor.fmap NegNeg a2b nna nb = nna ( negimply a2b nb )
+  Functor.identity NegNeg {A} = refl
+  Functor.homomorphism NegNeg = refl
+
+  x2nnx : {A : Set} -> A ->  ¬ ¬ A
+  x2nnx x nx = nx x
+
+  nnnx2nx : {A : Set} -> ¬ ¬ ¬ A -> ¬ A
+  nnnx2nx nnnx x = nnnx (x2nnx x)
+  
+  NegNegMONAD : Monad SET
+  functor NegNegMONAD = NegNeg
+  transform (returnNT NegNegMONAD) X x nx = nx x
+  natural (returnNT NegNegMONAD) X Y f = refl
+  transform (joinNT NegNegMONAD) X nnnnx nx = nnnx2nx nnnnx nx
+  natural (joinNT NegNegMONAD) X Y f = refl
+  returnJoin NegNegMONAD {X} = refl
+  mapReturnJoin NegNegMONAD = refl
+  joinJoin NegNegMONAD = refl
