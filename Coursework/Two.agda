@@ -865,7 +865,14 @@ module Compilation where
 
 
   compile : ∀ {t ts} → Expr t -> Prog ts (t ∷ ts)
-  compile = {!!}
+  compile {.nat} {ts} (num x) = PUSH x
+  compile {.bool} {ts} (bit x) = PUSH x
+  compile {.nat} {ts} get = LOAD
+  compile {t} {ts} (store e then e₁) =  compile e ▹ SAVE ▹ POP ▹ compile e₁
+  compile {.nat} {ts} (e +E e₁) = compile e ▹ compile e₁ ▹ ADD
+  compile {.nat} {ts} (e *E e₁) = compile e ▹ compile e₁ ▹ MUL
+  compile {.bool} {ts} (e <E e₁) = compile e ▹ compile e₁ ▹ CMP
+  compile {t} {ts} (ifE e then e₁ else e₂) = compile e ▹ BRANCH (compile  e₁) (compile e₂)
 
   -- Let us now explain how to actually run our machine code. First we
   -- define what a type-respecting stack is, and hence what a machine
@@ -892,21 +899,43 @@ module Compilation where
   -- have enough things on the stack?
 
   run : ∀ {ts ts'} → Prog ts ts' → Conf ts -> Conf ts'
-  run = {!!}
+  run (PUSH x) ⟨ stack , memory ⟩ = ⟨ x ∷ stack , memory ⟩
+  run POP ⟨ x ∷ stack , memory ⟩ = ⟨ stack , memory ⟩
+  run ADD ⟨ x ∷ y ∷ stack , memory ⟩ = ⟨ y + x ∷ stack , memory ⟩
+  run MUL ⟨ x ∷ y ∷ stack , memory ⟩ = ⟨ y * x ∷ stack , memory ⟩
+  run CMP ⟨ x ∷ y ∷ stack , memory ⟩ =  ⟨ (y <ᵇ x) ∷ stack , memory ⟩
+  run LOAD ⟨ stack , memory ⟩ = ⟨ memory ∷ stack , memory ⟩
+  run SAVE ⟨ x ∷ stack , memory ⟩ =  ⟨ x ∷ stack , x ⟩
+  run (BRANCH x x₁) ⟨ false ∷ stack , memory ⟩ = run x₁ ⟨ stack , memory ⟩
+  run (BRANCH x x₁) ⟨ true ∷ stack , memory ⟩ =  run x ⟨ stack , memory ⟩
+  run (x ▹ x₁) c with run x c
+  ... | c' = run x₁ c'
+  run NOOP c = c
 
   {- ??? 2.26 In fact, *prove* that running a
          compiled expression is the same as evaluating it!
      (4 MARKS) -}
 
-  soundness : ∀ {t ts} → (ρ : ℕ)(xs : Stack ts) → (e : Expr t) ->
-              run (compile e) ⟨ xs , ρ ⟩ ≡ ⟨ eval₀ e ρ ∷ xs , evalState e ρ ⟩
-  soundness ρ xs p = {!!}
+  soundness : ∀ {t ts} → (ρ : ℕ)(st : Stack ts) → (e : Expr t) ->
+              run (compile e) ⟨ st , ρ ⟩ ≡ ⟨ eval₀ e ρ ∷ st , evalState e ρ ⟩
+  soundness {.nat} {ts} ρ st (num x) = refl
+  soundness {.bool} {ts} ρ st (bit x) = refl
+  soundness {.nat} {ts} ρ st get = refl
+  soundness {t} {ts} ρ st (store e then e₁) rewrite soundness ρ st e = soundness _ _ e₁
+  soundness {.nat} {ts} ρ st (e +E e₁) rewrite soundness ρ st e | soundness (proj₁ (eval e ρ)) (proj₂ (eval e ρ) ∷ st) e₁ = refl
+  soundness {.nat} {ts} ρ st (e *E e₁) rewrite soundness ρ st e | soundness (proj₁ (eval e ρ)) (proj₂ (eval e ρ) ∷ st) e₁ = refl
+  soundness {.bool} {ts} ρ st (e <E e₁) rewrite soundness ρ st e | soundness (proj₁ (eval e ρ)) (proj₂ (eval e ρ) ∷ st) e₁ = refl
+  soundness {t} {ts} ρ st (ifE e then e₁ else e₂) with  run (compile e) ⟨ st , ρ ⟩ | eval e ρ  | soundness ρ st e
+  ... | ⟨ .(false ∷ st) , memory₁ ⟩ | .memory₁ , false | refl = soundness memory₁ st e₂
+  ... | ⟨ .(true ∷ st) , memory₁ ⟩ | .memory₁ , true | refl =  soundness memory₁ st e₁
+
+
 
 --------------------------
 -- An optimising compiler
 --------------------------
 
-{- COMMENT ME IN WHEN YOU GET HERE (MY TWIN IS AT THE BOTTOM OF THE FILE)
+
 
   -- It's good to be right, but sometimes it is also important to be
   -- fast. Hence let us build an *optimising* compiler from expression
@@ -964,7 +993,7 @@ module Compilation where
   ... | leftNOOP p = myOptimiser1-correct p c
   myOptimiser1-correct .(BRANCH p p') ⟨ true ∷ c , ρ ⟩ | branch p p' = myOptimiser1-correct p ⟨ c , ρ ⟩
   myOptimiser1-correct .(BRANCH p p') ⟨ false ∷ c , ρ ⟩ | branch p p' = myOptimiser1-correct p' ⟨ c , ρ ⟩
-  ... | seq p p' rewrite myOptimiser1-correct p c | myOptimiser1-correct p' (run p c) = refl
+  ... | seq p p' rewrite myOptimiser1-correct p c = myOptimiser1-correct p' (run p c) 
   ... | other .p = refl
 
   -- Okay, but before you start writing your own optimisations, let's
@@ -983,10 +1012,78 @@ module Compilation where
   _>>=_ = Data.Maybe._>>=_
 
   eq-ListTy? : (ts ts' : List Ty) → Maybe (ts ≡ ts')
-  eq-ListTy? = {!!}
+  eq-ListTy? [] [] = just refl
+  eq-ListTy? [] (x ∷ ts') = nothing
+  eq-ListTy? (x ∷ ts) [] = nothing
+  eq-ListTy? (nat ∷ ts) (nat ∷ ts') with eq-ListTy? ts ts'
+  ... | just x = just ( cong (_∷_ nat) x )
+  ... | nothing = nothing
+  eq-ListTy? (nat ∷ ts) (bool ∷ ts') = nothing
+  eq-ListTy? (bool ∷ ts) (nat ∷ ts') = nothing
+  eq-ListTy? (bool ∷ ts) (bool ∷ ts') with eq-ListTy? ts ts'
+  ... | just x = just ( cong (_∷_ bool) x )
+  ... | nothing = nothing
+
+  eq-Val? : forall {t : Ty} -> (x y : Val t ) -> Maybe (x ≡ y )
+  eq-Val? {nat} zero zero = just refl
+  eq-Val? {nat} zero (suc y) = nothing
+  eq-Val? {nat} (suc x) zero = nothing
+  eq-Val? {nat} (suc x) (suc y) = eq-Val? {nat} x y >>= λ a -> just ( cong suc a )
+  eq-Val? {bool} false false = just refl
+  eq-Val? {bool} false true = nothing
+  eq-Val? {bool} true false = nothing
+  eq-Val? {bool} true true = just refl
 
   eq-Prog? : ∀ {a b a' b'} → (p : Prog a b)(p' : Prog a' b') → Maybe (Σ (a ≡ a') λ { refl → Σ (b ≡ b') λ { refl → p ≡ p' } })
-  eq-Prog? {a} {b} {a'} {b'} p p' = {!!}
+  eq-Prog? {a} {b} {a'} {b'} p p' with eq-ListTy? a a' | eq-ListTy? b b'
+  eq-Prog? {a} {.(_ ∷ a)} {.a} {.(_ ∷ a)} (PUSH x) (PUSH y) | just refl | just refl = ( eq-Val? x y ) >>= λ { refl →  just ( refl , ( refl , refl ) )  }
+  eq-Prog? {a} {.(nat ∷ a)} {.a} {.(nat ∷ a)} (PUSH x) LOAD | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ _)} {.(_ ∷ bool ∷ _)} {.(bool ∷ _)} {.(_ ∷ bool ∷ _)} (PUSH x) (BRANCH p' p'') | just refl | just refl = nothing
+  eq-Prog? {a} {.(_ ∷ a)} {.a} {.(_ ∷ a)} (PUSH x) (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {.(_ ∷ b)} {b} {.(_ ∷ b)} {.b} POP POP | just refl | just refl = just (refl , (refl , refl))
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} POP ADD | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} POP MUL | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ b)} {b} {.(bool ∷ b)} {.b} POP (BRANCH p' p'') | just refl | just refl = nothing
+  eq-Prog? {.(_ ∷ b)} {b} {.(_ ∷ b)} {.b} POP (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} ADD POP | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} ADD ADD | just refl | just refl = just (refl , refl , refl)
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} ADD MUL | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} ADD (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} MUL POP | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} MUL ADD | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} MUL MUL | just refl | just refl = just (refl , (refl , refl))
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} MUL (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(bool ∷ _)} {.(nat ∷ nat ∷ _)} {.(bool ∷ _)} CMP CMP | just refl | just refl = just (refl , (refl , refl))
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(bool ∷ _)} {.(nat ∷ nat ∷ _)} {.(bool ∷ _)} CMP (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {a} {.(nat ∷ a)} {.a} {.(nat ∷ a)} LOAD (PUSH x) | just refl | just refl = nothing
+  eq-Prog? {a} {.(nat ∷ a)} {.a} {.(nat ∷ a)} LOAD LOAD | just refl | just refl = just (refl , (refl , refl))
+  eq-Prog? {.(bool ∷ _)} {.(nat ∷ bool ∷ _)} {.(bool ∷ _)} {.(nat ∷ bool ∷ _)} LOAD (BRANCH p' p'') | just refl | just refl = nothing
+  eq-Prog? {a} {.(nat ∷ a)} {.a} {.(nat ∷ a)} LOAD (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} SAVE SAVE | just refl | just refl = just (refl , (refl , refl))
+  eq-Prog? {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} SAVE (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} SAVE NOOP | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ _)} {.(_ ∷ bool ∷ _)} {.(bool ∷ _)} {.(_ ∷ bool ∷ _)} (BRANCH p p₁) (PUSH x) | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ b)} {b} {.(bool ∷ b)} {.b} (BRANCH p p₁) POP | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ _)} {.(nat ∷ bool ∷ _)} {.(bool ∷ _)} {.(nat ∷ bool ∷ _)} (BRANCH p p₁) LOAD | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ _)} {b} {.(bool ∷ _)} {.b} (BRANCH p p₁) (BRANCH p' p'') | just refl | just refl = eq-Prog? p p' >>= λ { (refl , refl , refl) →  eq-Prog? p₁ p'' >>= λ { (refl , refl , refl) → just ( refl , refl , refl ) } }
+  eq-Prog? {.(bool ∷ _)} {b} {.(bool ∷ _)} {.b} (BRANCH p p₁) (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ _)} {.(bool ∷ _)} {.(bool ∷ _)} {.(bool ∷ _)} (BRANCH p p₁) NOOP | just refl | just refl = nothing
+  eq-Prog? {a} {.(_ ∷ a)} {.a} {.(_ ∷ a)} (p ▹ p₁) (PUSH x) | just refl | just refl = nothing
+  eq-Prog? {.(_ ∷ b)} {b} {.(_ ∷ b)} {.b} (p ▹ p₁) POP | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} (p ▹ p₁) ADD | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ nat ∷ _)} {.(nat ∷ _)} (p ▹ p₁) MUL | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ nat ∷ _)} {.(bool ∷ _)} {.(nat ∷ nat ∷ _)} {.(bool ∷ _)} (p ▹ p₁) CMP | just refl | just refl = nothing
+  eq-Prog? {a} {.(nat ∷ a)} {.a} {.(nat ∷ a)} (p ▹ p₁) LOAD | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} (p ▹ p₁) SAVE | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ _)} {b} {.(bool ∷ _)} {.b} (p ▹ p₁) (BRANCH p' p'') | just refl | just refl = nothing
+  eq-Prog? {a} {b} {.a} {.b} (p ▹ p₁) (p' ▹ p'') | just refl | just refl = eq-Prog? p p'  >>= λ { (refl , refl , refl) → eq-Prog? p₁ p'' >>= λ { (refl , refl , refl) → just ( refl , refl , refl )  } }
+  eq-Prog? {a} {.a} {.a} {.a} (p ▹ p₁) NOOP | just refl | just refl = nothing
+  eq-Prog? {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} {.(nat ∷ _)} NOOP SAVE | just refl | just refl = nothing
+  eq-Prog? {.(bool ∷ _)} {.(bool ∷ _)} {.(bool ∷ _)} {.(bool ∷ _)} NOOP (BRANCH p' p'') | just refl | just refl = nothing
+  eq-Prog? {a} {.a} {.a} {.a} NOOP (p' ▹ p'') | just refl | just refl = nothing
+  eq-Prog? {a} {.a} {.a} {.a} NOOP NOOP | just refl | just refl = just (refl , (refl , refl))
+  ... | just _ | nothing = nothing
+  ... | nothing | _  = nothing
 
   {- ??? 2.28 Now implement the worker of the optimiser, which takes a
          list of optimisers to run, a maximum number of times to run
@@ -997,8 +1094,15 @@ module Compilation where
          converge?)
      (2 MARKS) -}
 
+  apply : ∀ {ts ts'} → List (Prog ts ts' → Prog ts ts') → Prog ts ts' → Prog ts ts'
+  apply [] p = p
+  apply (f ∷ fs) p = apply fs (f p)
+  
   optimiseWorker :  ∀ {ts ts'} → List (Prog ts ts' → Prog ts ts') → (maxIterations : ℕ) → Prog ts ts' → Prog ts ts'
-  optimiseWorker fs maxIters p = {!!}
+  optimiseWorker fs zero p = p
+  optimiseWorker fs (suc maxIters) p with eq-Prog? (apply fs p) p
+  ... | just _ = p
+  ... | nothing = optimiseWorker fs maxIters p
 
   {- ??? 2.29 Go forth and optimise! Write as many optimisers as you
          want, and prove each one of them correct. You could consider
@@ -1073,4 +1177,3 @@ module Compilation where
     > 40  is worth  10 MARKS
   -}
 
--} -- THIS IS THE CLOSING COMMENT BRACE FOR THE FINAL SECTION
