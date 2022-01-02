@@ -1085,28 +1085,39 @@ module Compilation where
   ... | just _ | nothing = nothing
   ... | nothing | _  = nothing
 
-  
-  sameBranchOptimiser : ∀ {ts ts'} -> Prog ts ts' -> Prog ts ts'
-  sameBranchOptimiser (BRANCH p p₁) with  eq-Prog? p p₁
-  ... | just x = POP ▹ p
-  ... | nothing = BRANCH p p₁
-  sameBranchOptimiser p = p
+  data Savesave-View : {ts ts' : List Ty} → Prog ts ts' → Set where
+    rightSavesave : ∀ {ts ts'} (p : Prog (nat ∷ ts) ( nat ∷ ts') ) → Savesave-View (SAVE ▹ SAVE ▹ p)
+    leftSavesave : ∀ {ts ts'} (p : Prog (nat ∷ ts) (nat ∷ ts') ) → Savesave-View (p ▹ SAVE ▹ SAVE )
+    branch   : ∀ {ts ts'} (p p' : Prog ts ts') → Savesave-View (BRANCH p p')
+    seq : ∀ {ts ts' ts''} (p : Prog ts ts')(p' : Prog ts' ts'') → Savesave-View (p ▹ p')
+    other : ∀ {ts ts'} (p : Prog ts ts') → Savesave-View p
 
-  sameBranchOptimiser-correct : ∀ {ts ts'} (p : Prog ts ts') → (c : Conf ts) → run (sameBranchOptimiser p) c ≡ run p c
-  sameBranchOptimiser-correct (PUSH x) c = refl
-  sameBranchOptimiser-correct POP c = refl
-  sameBranchOptimiser-correct ADD c = refl
-  sameBranchOptimiser-correct MUL c = refl
-  sameBranchOptimiser-correct CMP c = refl
-  sameBranchOptimiser-correct LOAD c = refl
-  sameBranchOptimiser-correct SAVE c = refl
-  sameBranchOptimiser-correct (BRANCH p p₁) c with eq-Prog? p p₁
-  sameBranchOptimiser-correct (BRANCH p .p) ⟨ false ∷ stack₁ , memory₁ ⟩ | just (refl , refl , refl) = refl
-  sameBranchOptimiser-correct (BRANCH p .p) ⟨ true ∷ stack₁ , memory₁ ⟩ | just (refl , refl , refl) = refl
-  sameBranchOptimiser-correct (BRANCH p p₁) c | nothing = refl
-  sameBranchOptimiser-correct (p ▹ p₁) c = refl
-  sameBranchOptimiser-correct NOOP c = refl
+  savesave-view : ∀ {ts ts'} (p : Prog ts ts') → Savesave-View p
+  savesave-view {nat ∷ ts} {nat ∷ ts'} (  SAVE ▹ SAVE ▹ p ) = rightSavesave p
+  savesave-view {nat ∷ ts} {nat ∷ ts'} (  p ▹ SAVE ▹ SAVE  ) = leftSavesave p
+  savesave-view (BRANCH p p' ) = branch p p'
+  savesave-view (p ▹ p' ) = seq p p'
+  savesave-view p = other p
+
+  savesaveOptimiser : ∀ {ts ts'} -> Prog ts ts' -> Prog ts ts'
+  savesaveOptimiser p with savesave-view p
+  ... | rightSavesave p = SAVE ▹ savesaveOptimiser p
+  ... | leftSavesave p =  savesaveOptimiser p ▹ SAVE
+  ... | branch p p' = BRANCH ( savesaveOptimiser p)  (savesaveOptimiser p')
+  ... | seq p p' =  savesaveOptimiser p ▹ savesaveOptimiser p'
+  ... | other .p = p
+
+  savesave≡save : ∀ {ts} (c : Conf (nat ∷ ts) ) →  (run SAVE c) ≡ run SAVE (run SAVE c)
+  savesave≡save ⟨ x ∷ stack₁ , memory₁ ⟩ = refl
   
+  savesaveOptimiser-correct : ∀ {ts ts'} (p : Prog ts ts') → (c : Conf ts) → run (savesaveOptimiser p) c ≡ run p c
+  savesaveOptimiser-correct p c with savesave-view p
+  savesaveOptimiser-correct .(SAVE ▹ SAVE ▹ p) c | rightSavesave p rewrite savesaveOptimiser-correct p (run SAVE c) | sym ( savesave≡save c ) = refl
+  savesaveOptimiser-correct .(p ▹ SAVE ▹ SAVE) c | leftSavesave p rewrite savesaveOptimiser-correct p c = savesave≡save (run p c)
+  savesaveOptimiser-correct .(BRANCH p p') ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p p' = savesaveOptimiser-correct p' _
+  savesaveOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' = savesaveOptimiser-correct p _
+  savesaveOptimiser-correct .(p ▹ p') c | seq p p' rewrite savesaveOptimiser-correct p c = savesaveOptimiser-correct p' (run p c)
+  savesaveOptimiser-correct p c | other .p = refl
 
   {- ??? 2.28 Now implement the worker of the optimiser, which takes a
          list of optimisers to run, a maximum number of times to run
