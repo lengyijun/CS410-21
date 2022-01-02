@@ -27,7 +27,7 @@ module Coursework.Two where
 -- In fact, the very last section is already commented out for you.
 
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_; _<ᵇ_)
-open import Data.Nat.Properties using (+-identityʳ; +-identityˡ; +-suc; +-comm; +-assoc) renaming (_≟_ to decEqNat)
+open import Data.Nat.Properties using (+-identityʳ; +-identityˡ; +-suc; +-comm; +-assoc; *-comm) renaming (_≟_ to decEqNat)
 open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Bool.Properties using () renaming (_≟_ to decEqBool)
 open import Data.List as List using (List; []; _∷_; map)
@@ -1118,6 +1118,54 @@ module Compilation where
   savesaveOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' = savesaveOptimiser-correct p _
   savesaveOptimiser-correct .(p ▹ p') c | seq p p' rewrite savesaveOptimiser-correct p c = savesaveOptimiser-correct p' (run p c)
   savesaveOptimiser-correct p c | other .p = refl
+
+  data PP-View : {ts ts' : List Ty} → Prog ts ts' → Set where
+    rightadd : ∀ {ts ts'} {t1 t2} (p : Prog (nat ∷ ts) ( ts') ) → PP-View (PUSH t1 ▹ PUSH t2 ▹ ADD ▹ p)
+    leftadd : ∀ {ts ts'} {t1 t2} (p : Prog (nat ∷ ts) ( ts') ) → PP-View (p ▹ PUSH t1 ▹ PUSH t2 ▹ ADD )
+    rightmul : ∀ {ts ts'} {t1 t2} (p : Prog (nat ∷ ts) ( ts') ) → PP-View (PUSH t1 ▹ PUSH t2 ▹ MUL ▹ p)
+    leftmul : ∀ {ts ts'} {t1 t2} (p : Prog (nat ∷ ts) ( ts') ) → PP-View (p ▹ PUSH t1 ▹ PUSH t2 ▹ MUL )
+    rightcmp : ∀ {ts ts'} {t1 t2} (p : Prog (bool ∷ ts) ( ts') ) → PP-View (PUSH t1 ▹ PUSH t2 ▹ CMP ▹ p)
+    leftcmp : ∀ {ts ts'} {t1 t2} (p : Prog (bool ∷ ts) ( ts') ) → PP-View (p ▹ PUSH t1 ▹ PUSH t2 ▹ CMP )
+    branch   : ∀ {ts ts'} (p p' : Prog ts ts') → PP-View (BRANCH p p')
+    seq : ∀ {ts ts' ts''} (p : Prog ts ts')(p' : Prog ts' ts'') → PP-View (p ▹ p')
+    other : ∀ {ts ts'} (p : Prog ts ts') → PP-View p
+    
+  pp-view : ∀ {ts ts'} (p : Prog ts ts') → PP-View p
+  pp-view {ts} { ts'} ( PUSH t1 ▹ PUSH t2 ▹ ADD ▹ p ) = rightadd p
+  pp-view {nat ∷ ts} {ts'} ( p ▹ PUSH t1 ▹ PUSH t2 ▹ ADD ) = leftadd p
+  pp-view {ts} { ts'} ( PUSH t1 ▹ PUSH t2 ▹ MUL ▹ p ) = rightmul p
+  pp-view {nat ∷ ts} {ts'} ( p ▹ PUSH t1 ▹ PUSH t2 ▹ MUL ) = leftmul p
+  pp-view {ts} { ts'} ( PUSH t1 ▹ PUSH t2 ▹ CMP ▹ p ) = rightcmp p
+  pp-view {bool ∷ ts} { ts'} ( p ▹ PUSH t1 ▹ PUSH t2 ▹ CMP ) = leftcmp p
+  pp-view (BRANCH p p' ) = branch p p'
+  pp-view (p ▹ p' ) = seq p p'
+  pp-view p = other p
+
+  ppOptimiser : ∀ {ts ts'} -> Prog ts ts' -> Prog ts ts'
+  ppOptimiser x with pp-view x
+  ppOptimiser .(PUSH t1 ▹ PUSH t2 ▹ ADD ▹ p) | rightadd {t1 = t1} {t2} p = PUSH (t1 + t2) ▹ ppOptimiser p
+  ppOptimiser .(p ▹ PUSH t1 ▹ PUSH t2 ▹ ADD) | leftadd {t1 = t1} {t2} p = ppOptimiser p ▹ PUSH (t2 + t1)
+  ppOptimiser .(PUSH t1 ▹ PUSH t2 ▹ MUL ▹ p) | rightmul {t1 = t1} {t2} p =  PUSH (t2 * t1) ▹ ppOptimiser p
+  ppOptimiser .(p ▹ PUSH t1 ▹ PUSH t2 ▹ MUL) | leftmul {t1 = t1} {t2} p = ppOptimiser p ▹ PUSH (t2 * t1)
+  ppOptimiser .(PUSH t1 ▹ PUSH t2 ▹ CMP ▹ p) | rightcmp {t1 = t1} {t2} p = PUSH (t1 <ᵇ t2) ▹ ppOptimiser p
+  ppOptimiser .(p ▹ PUSH t1 ▹ PUSH t2 ▹ CMP) | leftcmp {t1 = t1} {t2} p = ppOptimiser p ▹ PUSH (t1 <ᵇ t2)
+  ppOptimiser .(BRANCH p p') | branch p p' = BRANCH (ppOptimiser p) ( ppOptimiser p')
+  ppOptimiser .(p ▹ p') | seq p p' = ppOptimiser p ▹ ppOptimiser p'
+  ppOptimiser x | other .x = x
+  
+  ppOptimiser-correct : ∀ {ts ts'} (p : Prog ts ts') → (c : Conf ts) → run (ppOptimiser p) c ≡ run p c
+  ppOptimiser-correct p c with pp-view p
+  ppOptimiser-correct .(PUSH t1 ▹ PUSH t2 ▹ ADD ▹ p) ⟨ stack₁ , memory₁ ⟩ | rightadd {t1 = t1} {t2} p rewrite ppOptimiser-correct p ⟨ t1 + t2 ∷ stack₁ , memory₁ ⟩ = refl
+  ppOptimiser-correct .(p ▹ PUSH t1 ▹ PUSH t2 ▹ ADD) c | leftadd {t1 = t1} {t2} p rewrite ppOptimiser-correct p c | +-comm t2 t1 = refl
+  ppOptimiser-correct .(PUSH t1 ▹ PUSH t2 ▹ MUL ▹ p) ⟨ stack₁ , memory₁ ⟩ | rightmul {t1 = t1} {t2} p rewrite ppOptimiser-correct p ⟨ t2 * t1 ∷ stack₁ , memory₁ ⟩ | *-comm t2 t1 = refl
+  ppOptimiser-correct .(p ▹ PUSH t1 ▹ PUSH t2 ▹ MUL) c | leftmul {t1 = t1} {t2} p rewrite ppOptimiser-correct p c | +-comm t2 t1 | *-comm t2 t1 = refl
+  ppOptimiser-correct .(PUSH t1 ▹ PUSH t2 ▹ CMP ▹ p) ⟨ stack₁ , memory₁ ⟩ | rightcmp {t1 = t1} {t2} p rewrite ppOptimiser-correct p ⟨ ( t1 <ᵇ t2) ∷ stack₁ , memory₁ ⟩ = refl
+  ppOptimiser-correct .(p ▹ PUSH t1 ▹ PUSH t2 ▹ CMP) c | leftcmp {t1 = t1} {t2} p rewrite ppOptimiser-correct p c = refl
+  ppOptimiser-correct .(BRANCH p p') ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p p' = ppOptimiser-correct p' ⟨ stack₁ , memory₁ ⟩
+  ppOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' =  ppOptimiser-correct p ⟨ stack₁ , memory₁ ⟩
+  ppOptimiser-correct .(p ▹ p') c | seq p p' rewrite ppOptimiser-correct p c = ppOptimiser-correct p' _
+  ppOptimiser-correct p c | other .p = refl
+
 
   {- ??? 2.28 Now implement the worker of the optimiser, which takes a
          list of optimisers to run, a maximum number of times to run
