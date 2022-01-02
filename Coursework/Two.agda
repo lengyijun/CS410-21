@@ -1166,7 +1166,71 @@ module Compilation where
   ppOptimiser-correct .(p ▹ p') c | seq p p' rewrite ppOptimiser-correct p c = ppOptimiser-correct p' _
   ppOptimiser-correct p c | other .p = refl
 
-
+  -- TODO left right
+  data Miscellaneous-View : {ts ts' : List Ty} → Prog ts ts' → Set where
+    pushpopnat : ∀ {ts ts'} {t1 : Val nat } ( p : Prog ts ts' ) -> Miscellaneous-View ( PUSH t1 ▹ POP ▹ p )
+    pushpopbool : ∀ {ts ts'} {t1 : Val bool } ( p : Prog ts ts' ) -> Miscellaneous-View ( PUSH t1 ▹ POP ▹ p )
+    loadpop : ∀ {ts ts'} (p : Prog ts ts') -> Miscellaneous-View (LOAD ▹ POP ▹ p)
+    cmppop : ∀ {ts ts'} (p : Prog ts ts') -> Miscellaneous-View ( CMP ▹ POP ▹ p )
+    addpop : ∀ {ts ts'} (p : Prog ts ts') -> Miscellaneous-View ( ADD ▹ POP ▹ p )
+    mulpop : ∀ {ts ts'} (p : Prog ts ts') -> Miscellaneous-View ( MUL ▹ POP ▹ p )
+    loadsave : ∀ {ts ts'} (p : Prog (nat ∷ ts) ts') -> Miscellaneous-View ( LOAD ▹ SAVE ▹ p)
+    savepopload : ∀ {ts ts'} (p : Prog (nat ∷ ts) ts') -> Miscellaneous-View (SAVE ▹ POP ▹ LOAD ▹ p )
+    -- maybe some problem here
+    truebranch : ∀ {ts ts'} (l : Prog ts ts') -> (r : Prog ts ts') -> Miscellaneous-View (PUSH true ▹ BRANCH l r)
+    falsebranch : ∀ {ts ts'} (l : Prog ts ts') -> (r : Prog ts ts') -> Miscellaneous-View (PUSH false ▹ BRANCH l r)
+    branch   : ∀ {ts ts'} (p p' : Prog ts ts') → Miscellaneous-View (BRANCH p p')
+    seq : ∀ {ts ts' ts''} (p : Prog ts ts')(p' : Prog ts' ts'') → Miscellaneous-View (p ▹ p')
+    other : ∀ {ts ts'} (p : Prog ts ts') → Miscellaneous-View p
+    
+  miscellaneous-view : ∀ {ts ts'} (p : Prog ts ts') → Miscellaneous-View p
+  miscellaneous-view {ts} {ts'} (PUSH {t = nat} t1 ▹ POP ▹ p) = pushpopnat p
+  miscellaneous-view {ts} {ts'} (PUSH {t = bool} t1 ▹ POP ▹ p) = pushpopbool p
+  miscellaneous-view {ts} {ts'} (LOAD ▹ POP ▹ p) = loadpop p
+  miscellaneous-view {ts} {ts'} (CMP ▹ POP ▹ p) = cmppop p
+  miscellaneous-view {ts} {ts'} (ADD ▹ POP ▹ p) = addpop p
+  miscellaneous-view {ts} {ts'} (MUL ▹ POP ▹ p) = mulpop p
+  miscellaneous-view {ts} {ts'} (LOAD ▹ SAVE ▹ p) = loadsave p
+  miscellaneous-view {ts} {ts'} (SAVE ▹ POP ▹ LOAD ▹ p) = savepopload p
+  miscellaneous-view {ts} {ts'} (PUSH true ▹ BRANCH l r) = truebranch l r
+  miscellaneous-view {ts} {ts'} (PUSH false ▹ BRANCH l r) = falsebranch l r  
+  miscellaneous-view {ts} {ts'} (BRANCH l r ) = branch l r
+  miscellaneous-view {ts} {ts'} (p ▹ q) = seq p q 
+  miscellaneous-view {ts} {ts'} p = other p
+  
+  miscellaneousOptimiser : ∀ {ts ts'} -> Prog ts ts' -> Prog ts ts'
+  miscellaneousOptimiser p with miscellaneous-view p
+  miscellaneousOptimiser .(PUSH _ ▹ POP ▹ p) | pushpopnat p = miscellaneousOptimiser p
+  miscellaneousOptimiser .(PUSH _ ▹ POP ▹ p) | pushpopbool p = miscellaneousOptimiser p
+  miscellaneousOptimiser .(LOAD ▹ POP ▹ p) | loadpop p = miscellaneousOptimiser p
+  miscellaneousOptimiser .(CMP ▹ POP ▹ p) | cmppop p =  POP ▹ POP ▹ miscellaneousOptimiser p
+  miscellaneousOptimiser .(ADD ▹ POP ▹ p) | addpop p =  POP ▹ POP ▹ miscellaneousOptimiser p
+  miscellaneousOptimiser .(MUL ▹ POP ▹ p) | mulpop p =  POP ▹ POP ▹ miscellaneousOptimiser p
+  miscellaneousOptimiser .(LOAD ▹ SAVE ▹ p) | loadsave p = LOAD ▹ miscellaneousOptimiser p
+  miscellaneousOptimiser .(SAVE ▹ POP ▹ LOAD ▹ p) | savepopload p = SAVE ▹ miscellaneousOptimiser p
+  miscellaneousOptimiser .(BRANCH p p') | branch p p' = BRANCH (miscellaneousOptimiser p) (miscellaneousOptimiser p')
+  miscellaneousOptimiser .(PUSH true ▹ BRANCH l r) | truebranch l r = miscellaneousOptimiser l
+  miscellaneousOptimiser .(PUSH false ▹ BRANCH l r) | falsebranch l r = miscellaneousOptimiser r
+  miscellaneousOptimiser .(p ▹ p') | seq p p' =  miscellaneousOptimiser p ▹ miscellaneousOptimiser p'
+  miscellaneousOptimiser p | other .p = p
+  
+  miscellaneousOptimiser-correct : ∀ {ts ts'} (p : Prog ts ts') → (c : Conf ts) → run (miscellaneousOptimiser p) c ≡ run p c
+  miscellaneousOptimiser-correct p c with miscellaneous-view p
+  miscellaneousOptimiser-correct .(PUSH _ ▹ POP ▹ p) c | pushpopnat p = miscellaneousOptimiser-correct p _
+  miscellaneousOptimiser-correct .(PUSH _ ▹ POP ▹ p) c | pushpopbool p =  miscellaneousOptimiser-correct p _
+  miscellaneousOptimiser-correct .(LOAD ▹ POP ▹ p) c | loadpop p =  miscellaneousOptimiser-correct p _
+  miscellaneousOptimiser-correct .(CMP ▹ POP ▹ p) ⟨ x ∷ x₁ ∷ stack₁ , memory₁ ⟩ | cmppop p = miscellaneousOptimiser-correct p ⟨ stack₁ , memory₁ ⟩
+  miscellaneousOptimiser-correct .(ADD ▹ POP ▹ p) ⟨ x ∷ x₁ ∷ stack₁ , memory₁ ⟩ | addpop p = miscellaneousOptimiser-correct p ⟨ stack₁ , memory₁ ⟩ 
+  miscellaneousOptimiser-correct .(MUL ▹ POP ▹ p) ⟨ x ∷ x₁ ∷ stack₁ , memory₁ ⟩ | mulpop p = miscellaneousOptimiser-correct p ⟨ stack₁ , memory₁ ⟩
+  miscellaneousOptimiser-correct .(LOAD ▹ SAVE ▹ p) ⟨ stack₁ , memory₁ ⟩ | loadsave p = miscellaneousOptimiser-correct p ⟨ memory₁ ∷ stack₁ , memory₁ ⟩ 
+  miscellaneousOptimiser-correct .(SAVE ▹ POP ▹ LOAD ▹ p) ⟨ x ∷ stack₁ , memory₁ ⟩ | savepopload p = miscellaneousOptimiser-correct p ⟨ x ∷ stack₁ , x ⟩ 
+  miscellaneousOptimiser-correct .(PUSH true ▹ BRANCH l r) c | truebranch l r = miscellaneousOptimiser-correct l c
+  miscellaneousOptimiser-correct .(PUSH false ▹ BRANCH l r) c | falsebranch l r = miscellaneousOptimiser-correct r c
+  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p p' = miscellaneousOptimiser-correct p' _ 
+  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' = miscellaneousOptimiser-correct p _
+  miscellaneousOptimiser-correct .(p ▹ p') c | seq p p' rewrite miscellaneousOptimiser-correct p c = miscellaneousOptimiser-correct p' _
+  miscellaneousOptimiser-correct p c | other .p = refl
+  
   {- ??? 2.28 Now implement the worker of the optimiser, which takes a
          list of optimisers to run, a maximum number of times to run
          them, and a program to optimise. It should keep applying all
