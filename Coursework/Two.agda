@@ -1085,6 +1085,29 @@ module Compilation where
   ... | just _ | nothing = nothing
   ... | nothing | _  = nothing
 
+  
+  sameBranchOptimiser : ∀ {ts ts'} -> Prog ts ts' -> Prog ts ts'
+  sameBranchOptimiser (BRANCH p p₁) with  eq-Prog? p p₁
+  ... | just x = POP ▹ p
+  ... | nothing = BRANCH p p₁
+  sameBranchOptimiser p = p
+
+  sameBranchOptimiser-correct : ∀ {ts ts'} (p : Prog ts ts') → (c : Conf ts) → run (sameBranchOptimiser p) c ≡ run p c
+  sameBranchOptimiser-correct (PUSH x) c = refl
+  sameBranchOptimiser-correct POP c = refl
+  sameBranchOptimiser-correct ADD c = refl
+  sameBranchOptimiser-correct MUL c = refl
+  sameBranchOptimiser-correct CMP c = refl
+  sameBranchOptimiser-correct LOAD c = refl
+  sameBranchOptimiser-correct SAVE c = refl
+  sameBranchOptimiser-correct (BRANCH p p₁) c with eq-Prog? p p₁
+  sameBranchOptimiser-correct (BRANCH p .p) ⟨ false ∷ stack₁ , memory₁ ⟩ | just (refl , refl , refl) = refl
+  sameBranchOptimiser-correct (BRANCH p .p) ⟨ true ∷ stack₁ , memory₁ ⟩ | just (refl , refl , refl) = refl
+  sameBranchOptimiser-correct (BRANCH p p₁) c | nothing = refl
+  sameBranchOptimiser-correct (p ▹ p₁) c = refl
+  sameBranchOptimiser-correct NOOP c = refl
+  
+
   {- ??? 2.28 Now implement the worker of the optimiser, which takes a
          list of optimisers to run, a maximum number of times to run
          them, and a program to optimise. It should keep applying all
