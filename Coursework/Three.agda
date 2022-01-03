@@ -149,8 +149,6 @@ module _ (C : Category) where
   right-inverse-of (terminal-objects-unique X Y istx isty) rewrite  unique istx {X}  ( Category.id C { X } )  =  unique istx {X} _
 
 
-{- annan UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
-
 ------------------------------------------------------------------------------
 --  All and Any (20 MARKS in total)
 ------------------------------------------------------------------------------
@@ -323,7 +321,6 @@ transpose : {I J : Set}{R : I -> J -> Set}
   -> All (λ j -> All (λ x → R x j) is) js  -- show every j is related to every i.
 transpose = {!!}
 
-END OF COMMENT annan -}
 
 {- banff UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
 
