@@ -183,20 +183,36 @@ list1 = 0 ∷ 0 ∷ 4 ∷ 201 ∷ 92 ∷ []
 list2 = 2 ∷ 6 ∷ 4 ∷ 10 ∷ []
 
 allOdd0 : All IsOdd list0
-allOdd0 = {!!}
+allOdd0 = one ∷ sucsuc ( sucsuc one ) ∷ sucsuc ( sucsuc ( sucsuc ( sucsuc one ))) ∷ []
+
+n+zero : (n : ℕ ) -> n + zero ≡ n
+n+zero zero = refl
+n+zero (suc n) rewrite n+zero n = refl
+
+n+suc : (a b : ℕ ) -> a + suc b  ≡ suc ( a + b )
+n+suc zero b = refl
+n+suc (suc a) b = cong suc (n+suc a b)
+
+2n :  (n : ℕ ) -> n + n ≡ 2 * n
+2n zero = refl
+2n (suc n) rewrite n+zero n = refl
 
 -- This could come in handy:
 isOdd2*x+1 : (n : ℕ) -> IsOdd (suc (2 * n))
-isOdd2*x+1 = {!!}
+isOdd2*x+1 zero = one
+isOdd2*x+1 (suc n) rewrite n+zero n | n+suc n n | 2n n = sucsuc (isOdd2*x+1 n)
 
 someOdd1 : Any IsOdd list1
-someOdd1 = {!!}
+someOdd1 = there (there ( there ( here ( isOdd2*x+1 100 ))))
 
 notAllOdd2 : ¬ All IsOdd list2
-notAllOdd2 = {!!}
+notAllOdd2 (sucsuc () ∷ (px₁ ∷ (px₂ ∷ (px₃ ∷ []))))
 
 notSomeOdd2 : ¬ Any IsOdd list2
-notSomeOdd2 = {!!}
+notSomeOdd2 (here (sucsuc ()))
+notSomeOdd2 (there (here (sucsuc (sucsuc (sucsuc ())))))
+notSomeOdd2 (there (there (here (sucsuc (sucsuc ())))))
+notSomeOdd2 (there (there (there (here (sucsuc (sucsuc (sucsuc (sucsuc (sucsuc ())))))))))
 
 ------------------------------
 --  All and Any are functorial
@@ -207,10 +223,12 @@ notSomeOdd2 = {!!}
    (2 MARKS) -}
 
 All-map : {I : Set}{P Q : I → Set} → (∀ i → P i →  Q i) → (∀ is → All P  is → All Q is)
-All-map = {!!}
+All-map x .[] [] = []
+All-map {I} {P = P} {Q} x .(x₂ ∷ xs) (_∷_ {x₂} {xs = xs} px x₁) = ( x x₂ px )∷ All-map x xs x₁
 
 Any-map : {I : Set}{P Q : I → Set} → (∀ i → P i →  Q i) → (∀ is → Any P  is → Any Q is)
-Any-map = {!!}
+Any-map x .(x₁ ∷ _) (here {x₁} px) = here (x x₁ px)
+Any-map {I} {P = P} {Q} x .(x₂ ∷ xs) (there {x₂} {xs = xs} x₁) = there ( Any-map x xs x₁ )
 
   {- ??? 3.7 Okay, now show that I-indexed sets form a category, and
          that All and Any *really are* functors from I-indexed sets to List
@@ -221,15 +239,40 @@ Any-map = {!!}
 module _ where
   open Category
   open Functor
+  
 
   _-C>_ : (I : Set) -> (C : Category) -> Category
-  I -C> C = {!!}
+  Obj (I -C> C) = I -> Obj C
+  Hom (I -C> C) x y = ∀ i -> Hom C (x i) (y i)
+  Category.id (I -C> C) {A} i = Category.id C
+  comp (I -C> C) x y i = comp C (x i) (y i)
+  assoc (I -C> C) {A} {B} {C₁} {D} {ab} {bc} {cd} = ext λ x -> assoc C 
+  identityˡ (I -C> C) {A} {B} {f} = ext λ x -> ( identityˡ C )
+  identityʳ (I -C> C) =  ext λ x -> ( identityʳ C )
 
   ALL : {I : Set} -> Functor (I -C> SET) (List I -C> SET)
-  ALL = {!!}
+  act ALL x x₁ = All x x₁
+  fmap ALL = All-map
+  identity (ALL {I}) {A} = ext λ x → (ext λ y → lemma x y ) where
+    lemma : ( x : List I ) -> ( y : All A x ) ->  All-map (Category.id (I -C> SET)) x y ≡ F.id y
+    lemma .[] [] = refl
+    lemma .(_ ∷ xs) (_∷_ {xs = xs} px y) = cong₂ _∷_ refl (lemma xs y)
+  homomorphism (ALL {I}) {X} {Y} {Z} {f} {g} = ext λ x -> ext λ y -> lemma x y where
+    lemma : ( x : List I ) -> (y : All X x) -> All-map (((I -C> SET) ∘ g) f) x y ≡ ((List I -C> SET) ∘ All-map g) (All-map f) x y
+    lemma .[] [] = refl
+    lemma .(_ ∷ xs) (_∷_ {xs = xs} px y) = cong₂ _∷_ refl (lemma xs y)
 
   ANY : {I : Set} -> Functor (I -C> SET) (List I -C> SET)
-  ANY = {!!}
+  act ANY x x₁ = Any x x₁
+  fmap ANY = Any-map
+  identity (ANY {I}) {A} = ext λ x -> ext λ y -> lemma x y where
+    lemma : (x : List I ) -> ( y : Any A x ) -> Any-map (Category.id (I -C> SET)) x y ≡ F.id y
+    lemma .(_ ∷ _) (here px) = refl
+    lemma .(_ ∷ xs) (there {xs = xs} y) = cong there (lemma xs y)
+  homomorphism (ANY {I}) {X} {Y} {Z} {f} {g} = ext λ x → ext λ y → lemma x y  where
+    lemma : (x : List I) -> (y : Any X x) -> Any-map (((I -C> SET) ∘ g) f) x y ≡ ((List I -C> SET) ∘ Any-map g) (Any-map f) x y
+    lemma .(_ ∷ _) (here px) = refl
+    lemma .(_ ∷ xs) (there {xs = xs} y) = cong there (lemma xs y)
 
 {- ??? 3.8 How are "there is an element not satisfying P" and "not
        every element satisfies P" related? Show that We can always go
@@ -239,12 +282,16 @@ module _ where
 
 Any¬→¬All : {I : Set} → {P : I → Set} → {xs : List I} →
               Any (¬_ ∘′ P) xs → ¬ All P xs
-Any¬→¬All = {!!}
+Any¬→¬All {I} {P} {.(_ ∷ _)} (here px) (px₁ ∷ x₁) = px px₁
+Any¬→¬All {I} {P} {.(_ ∷ xs)} (there {xs = xs} x) (px ∷ x₁) = Any¬→¬All x x₁
 
 ¬All→Any¬ : {I : Set} → {P : I → Set} → {xs : List I} →
             (∀ i → Dec (P i)) →
             ¬ All P xs → Any (¬_ ∘′ P) xs
-¬All→Any¬ = {!!}
+¬All→Any¬ {I} {P} {[]} x x₁ = ⊥-elim ( x₁ [] )
+¬All→Any¬ {I} {P} {x₂ ∷ xs} x x₁ with x x₂
+... | no ¬p = here λ y → ¬p y
+... | yes p = there ( ¬All→Any¬ x λ z -> x₁ (p ∷ z) )
 
 -- TO PONDER: What if P is not decidable? Can you show that ¬All→Any¬
 -- in that case cannot be implementable?
@@ -263,10 +310,12 @@ module _ {X Y}(f : X -> Y){P : Y -> Set} where
    (1 MARK) -}
 
   allReindex : ∀ is → All (P ∘′ f) is → (All P ∘′ L.map f) is
-  allReindex = {!!}
+  allReindex [] x = []
+  allReindex (x₁ ∷ is) (px ∷ x) = px ∷ allReindex is x
 
   allReindex⁻¹ : ∀ is → (All P ∘′ L.map f) is → All (P ∘′ f) is
-  allReindex⁻¹ = {!!}
+  allReindex⁻¹ [] x = []
+  allReindex⁻¹ (x₁ ∷ is) (px ∷ x) = px ∷ allReindex⁻¹ is x
 
 --------------------------
 -- Applicative structure
@@ -290,8 +339,12 @@ VApp n = record { pure = replicate ; _⊛_ = V._⊛_ }
 module _ {F : Set -> Set}(ApF : RawApplicative F) where
   open RawApplicative ApF
 
+  jiting : ∀ {X}{P : X -> Set}{x : X}{is : List X} -> P x -> ( All P is → All P (x ∷ is) )
+  jiting x x₁ = x ∷ x₁
+  
   allYank : ∀ {X}{P : X -> Set} → ∀ is → All (F ∘′ P) is → (F ∘′ All P) is
-  allYank = {!!}
+  allYank {X} {P} .[] [] = pure []
+  allYank {X} {P} .(_ ∷ xs) (_∷_ {xs = xs} px x) =  _⊛_ ( _⊛_  ( pure jiting ) px ) ((allYank xs x ))
 
 {- ??? 3.11 Find the *indexed* applicative structure for All. (This
        sadly does not fit in the RawApplicative record of the standard
@@ -302,10 +355,12 @@ module _ {F : Set -> Set}(ApF : RawApplicative F) where
 -- HINT: this is very similar to what happens for vectors.
 
 pureAll : ∀ {I}{P : I -> Set} → (∀ i → P i) -> (∀ is → All P is)
-pureAll = {!!}
+pureAll x [] = []
+pureAll x (x₁ ∷ is) = x x₁ ∷ pureAll x is
 
 appAll  : ∀ {I}{P Q : I -> Set} → ∀ is → All (λ i → P i → Q i) is → All P is → All Q is
-appAll = {!!}
+appAll .[] x [] = []
+appAll .(_ ∷ xs) (_∷_ {xs = xs} px₁ x) (px ∷ x₁) = px₁ px ∷ appAll xs x x₁
 
 {- ??? 3.12 Implement transposition:
    (2 MARKS)
