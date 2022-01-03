@@ -117,10 +117,10 @@ module _ where
   open IsTerminal
 
   C : Category
-  C = {!!}
+  C = discrete ⊥
 
   no-terminal : (X : Obj C) → ¬ IsTerminal C X
-  no-terminal = {!!}
+  no-terminal () x
 
 module _ (C : Category) where
   open Category
@@ -143,7 +143,10 @@ module _ (C : Category) where
    (4 MARKS) -}
 
   terminal-objects-unique : (X Y : Obj C) → IsTerminal C X → IsTerminal C Y → X ≅ Y
-  terminal-objects-unique = {!!}
+  to (terminal-objects-unique X Y istx isty) = mediate isty {X}
+  from (terminal-objects-unique X Y istx isty) = mediate istx {Y}
+  left-inverse-of (terminal-objects-unique X Y istx isty) rewrite  unique isty {Y}  ( Category.id C { Y } )   = unique isty {Y} _  
+  right-inverse-of (terminal-objects-unique X Y istx isty) rewrite  unique istx {X}  ( Category.id C { X } )  =  unique istx {X} _
 
 
 {- annan UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
