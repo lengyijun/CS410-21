@@ -82,8 +82,9 @@ module _ (C : Category) where
 module _ where
   open IsTerminal
 
-  SET-has-terminal-object : IsTerminal SET {!!}
-  SET-has-terminal-object = {!!}
+  SET-has-terminal-object : IsTerminal SET ⊤
+  mediate SET-has-terminal-object x = tt
+  unique SET-has-terminal-object h = refl
 
 {- ??? 3.2 Show that MONOID has a terminal object.
   (2 MARKS) -}
@@ -94,8 +95,19 @@ module _ where
 module _ where
   open IsTerminal
 
-  MONOID-has-terminal-object : IsTerminal MONOID {!!}
-  MONOID-has-terminal-object = {!!}
+  SINGLE-Monoid : Monoid
+  Monoid.Carrier SINGLE-Monoid = ⊤
+  (SINGLE-Monoid Monoid.∙ x) x₁ = tt
+  Monoid.ε SINGLE-Monoid = tt
+  Monoid.assoc SINGLE-Monoid = refl
+  Monoid.identityˡ SINGLE-Monoid = refl
+  Monoid.identityʳ SINGLE-Monoid = refl
+  
+  MONOID-has-terminal-object : IsTerminal MONOID SINGLE-Monoid
+  MonoidMorphism.fun (mediate MONOID-has-terminal-object) x = tt
+  MonoidMorphism.preserves-ε (mediate MONOID-has-terminal-object) = refl
+  MonoidMorphism.preserves-∙ (mediate MONOID-has-terminal-object) x y = refl
+  unique MONOID-has-terminal-object h = eqMonoidMorphism  refl
 
 {- ??? 3.3 Show that not every category has a terminal object.
    (3 MARKS) -}
