@@ -1213,9 +1213,11 @@ module Compilation where
   miscellaneousOptimiser .(BRANCH (ls ▹ l) (rs ▹ r)) | factor ls l rs r with eq-Prog? l r
   miscellaneousOptimiser .(BRANCH (ls ▹ l) (rs ▹ l)) | factor ls l rs .l | just (refl , refl , refl) = ( BRANCH (miscellaneousOptimiser ls) (miscellaneousOptimiser rs)) ▹ (miscellaneousOptimiser l)
   miscellaneousOptimiser .(BRANCH (ls ▹ l) (rs ▹ r)) | factor ls l rs r | nothing = BRANCH (miscellaneousOptimiser ls ▹ miscellaneousOptimiser l ) (miscellaneousOptimiser rs ▹ miscellaneousOptimiser r)
-  miscellaneousOptimiser .(BRANCH p p') | branch p p' = BRANCH (miscellaneousOptimiser p) (miscellaneousOptimiser p')
   miscellaneousOptimiser .(PUSH true ▹ BRANCH l r) | truebranch l r = miscellaneousOptimiser l
   miscellaneousOptimiser .(PUSH false ▹ BRANCH l r) | falsebranch l r = miscellaneousOptimiser r
+  miscellaneousOptimiser .(BRANCH p p') | branch p p' with eq-Prog? p p'
+  miscellaneousOptimiser .(BRANCH p p) | branch p .p | just (refl , refl , refl) = POP ▹ miscellaneousOptimiser p
+  miscellaneousOptimiser .(BRANCH p p') | branch p p' | nothing = BRANCH (miscellaneousOptimiser p) (miscellaneousOptimiser p')
   miscellaneousOptimiser .(p ▹ p') | seq p p' =  miscellaneousOptimiser p ▹ miscellaneousOptimiser p'
   miscellaneousOptimiser p | other .p = p
 
@@ -1237,8 +1239,12 @@ module Compilation where
   miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ l)) ⟨ true ∷ stack₁ , memory₁ ⟩ | factor ls l rs l | just (refl , refl , refl)  rewrite miscellaneousOptimiser-correct ls ⟨ stack₁ , memory₁ ⟩ | miscellaneousOptimiser-correct rs ⟨ stack₁ , memory₁ ⟩ | miscellaneousOptimiser-correct l (run ls ⟨ stack₁ , memory₁ ⟩ ) = refl
   miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ r)) ⟨ false ∷ stack₁ , memory₁ ⟩ | factor ls l rs r | nothing rewrite miscellaneousOptimiser-correct rs ⟨ stack₁ , memory₁ ⟩ = miscellaneousOptimiser-correct r _
   miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ r)) ⟨ true ∷ stack₁ , memory₁ ⟩ | factor ls l rs r | nothing rewrite miscellaneousOptimiser-correct ls ⟨ stack₁ , memory₁ ⟩ = miscellaneousOptimiser-correct l _
-  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p p' = miscellaneousOptimiser-correct p' _ 
-  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' = miscellaneousOptimiser-correct p _
+  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p p' with eq-Prog? p p'
+  miscellaneousOptimiser-correct .(BRANCH p p) ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p .p | just (refl , refl , refl) = miscellaneousOptimiser-correct p ⟨ stack₁ , memory₁ ⟩
+  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p p' | nothing = miscellaneousOptimiser-correct p' _
+  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' with eq-Prog? p p'
+  miscellaneousOptimiser-correct .(BRANCH p p) ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p .p | just (refl , refl , refl) =  miscellaneousOptimiser-correct p ⟨ stack₁ , memory₁ ⟩
+  miscellaneousOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' | nothing =  miscellaneousOptimiser-correct p _
   miscellaneousOptimiser-correct .(p ▹ p') c | seq p p' rewrite miscellaneousOptimiser-correct p c = miscellaneousOptimiser-correct p' _
   miscellaneousOptimiser-correct p c | other .p = refl
 
@@ -1268,6 +1274,9 @@ module Compilation where
          of branches, getput and putput laws, redundant SAVES, ...
          Marks will be awarded based on your average improvement on
          the compilation of the test cases above.
+
+BRANCH POP
+should we put pop inside branch?
 
      (10 MARKS)
   -}
