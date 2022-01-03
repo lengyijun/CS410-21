@@ -1179,6 +1179,7 @@ module Compilation where
     -- maybe some problem here
     truebranch : ∀ {ts ts'} (l : Prog ts ts') -> (r : Prog ts ts') -> Miscellaneous-View (PUSH true ▹ BRANCH l r)
     falsebranch : ∀ {ts ts'} (l : Prog ts ts') -> (r : Prog ts ts') -> Miscellaneous-View (PUSH false ▹ BRANCH l r)
+    factor : ∀ {ts ts2 ts3 ts4 } (ls : Prog ts ts2) -> (l : Prog ts2 ts3 ) -> (rs : Prog ts ts4 ) -> ( r : Prog ts4 ts3 ) -> Miscellaneous-View(BRANCH (ls ▹ l) (rs ▹ r) )
     branch   : ∀ {ts ts'} (p p' : Prog ts ts') → Miscellaneous-View (BRANCH p p')
     seq : ∀ {ts ts' ts''} (p : Prog ts ts')(p' : Prog ts' ts'') → Miscellaneous-View (p ▹ p')
     other : ∀ {ts ts'} (p : Prog ts ts') → Miscellaneous-View p
@@ -1193,7 +1194,8 @@ module Compilation where
   miscellaneous-view {ts} {ts'} (LOAD ▹ SAVE ▹ p) = loadsave p
   miscellaneous-view {ts} {ts'} (SAVE ▹ POP ▹ LOAD ▹ p) = savepopload p
   miscellaneous-view {ts} {ts'} (PUSH true ▹ BRANCH l r) = truebranch l r
-  miscellaneous-view {ts} {ts'} (PUSH false ▹ BRANCH l r) = falsebranch l r  
+  miscellaneous-view {ts} {ts'} (PUSH false ▹ BRANCH l r) = falsebranch l r
+  miscellaneous-view {.(bool ∷ ts)} {ts'} (BRANCH {ts} (_▹_ {ts' = ts'''} ls l) (_▹_ {ts' = ts''} rs r)) = factor ls l rs r
   miscellaneous-view {ts} {ts'} (BRANCH l r ) = branch l r
   miscellaneous-view {ts} {ts'} (p ▹ q) = seq p q 
   miscellaneous-view {ts} {ts'} p = other p
@@ -1208,12 +1210,16 @@ module Compilation where
   miscellaneousOptimiser .(MUL ▹ POP ▹ p) | mulpop p =  POP ▹ POP ▹ miscellaneousOptimiser p
   miscellaneousOptimiser .(LOAD ▹ SAVE ▹ p) | loadsave p = LOAD ▹ miscellaneousOptimiser p
   miscellaneousOptimiser .(SAVE ▹ POP ▹ LOAD ▹ p) | savepopload p = SAVE ▹ miscellaneousOptimiser p
+  miscellaneousOptimiser .(BRANCH (ls ▹ l) (rs ▹ r)) | factor ls l rs r with eq-Prog? l r
+  miscellaneousOptimiser .(BRANCH (ls ▹ l) (rs ▹ l)) | factor ls l rs .l | just (refl , refl , refl) = ( BRANCH (miscellaneousOptimiser ls) (miscellaneousOptimiser rs)) ▹ (miscellaneousOptimiser l)
+  miscellaneousOptimiser .(BRANCH (ls ▹ l) (rs ▹ r)) | factor ls l rs r | nothing = BRANCH (miscellaneousOptimiser ls ▹ miscellaneousOptimiser l ) (miscellaneousOptimiser rs ▹ miscellaneousOptimiser r)
   miscellaneousOptimiser .(BRANCH p p') | branch p p' = BRANCH (miscellaneousOptimiser p) (miscellaneousOptimiser p')
   miscellaneousOptimiser .(PUSH true ▹ BRANCH l r) | truebranch l r = miscellaneousOptimiser l
   miscellaneousOptimiser .(PUSH false ▹ BRANCH l r) | falsebranch l r = miscellaneousOptimiser r
   miscellaneousOptimiser .(p ▹ p') | seq p p' =  miscellaneousOptimiser p ▹ miscellaneousOptimiser p'
   miscellaneousOptimiser p | other .p = p
-  
+
+
   miscellaneousOptimiser-correct : ∀ {ts ts'} (p : Prog ts ts') → (c : Conf ts) → run (miscellaneousOptimiser p) c ≡ run p c
   miscellaneousOptimiser-correct p c with miscellaneous-view p
   miscellaneousOptimiser-correct .(PUSH _ ▹ POP ▹ p) c | pushpopnat p = miscellaneousOptimiser-correct p _
@@ -1226,11 +1232,17 @@ module Compilation where
   miscellaneousOptimiser-correct .(SAVE ▹ POP ▹ LOAD ▹ p) ⟨ x ∷ stack₁ , memory₁ ⟩ | savepopload p = miscellaneousOptimiser-correct p ⟨ x ∷ stack₁ , x ⟩ 
   miscellaneousOptimiser-correct .(PUSH true ▹ BRANCH l r) c | truebranch l r = miscellaneousOptimiser-correct l c
   miscellaneousOptimiser-correct .(PUSH false ▹ BRANCH l r) c | falsebranch l r = miscellaneousOptimiser-correct r c
+  miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ r )) c | factor ls l rs r with eq-Prog? l r
+  miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ l)) ⟨ false ∷ stack₁ , memory₁ ⟩ | factor ls l rs l | just (refl , refl , refl) rewrite miscellaneousOptimiser-correct ls ⟨ stack₁ , memory₁ ⟩ | miscellaneousOptimiser-correct rs ⟨ stack₁ , memory₁ ⟩ | miscellaneousOptimiser-correct l (run rs ⟨ stack₁ , memory₁ ⟩ ) = refl
+  miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ l)) ⟨ true ∷ stack₁ , memory₁ ⟩ | factor ls l rs l | just (refl , refl , refl)  rewrite miscellaneousOptimiser-correct ls ⟨ stack₁ , memory₁ ⟩ | miscellaneousOptimiser-correct rs ⟨ stack₁ , memory₁ ⟩ | miscellaneousOptimiser-correct l (run ls ⟨ stack₁ , memory₁ ⟩ ) = refl
+  miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ r)) ⟨ false ∷ stack₁ , memory₁ ⟩ | factor ls l rs r | nothing rewrite miscellaneousOptimiser-correct rs ⟨ stack₁ , memory₁ ⟩ = miscellaneousOptimiser-correct r _
+  miscellaneousOptimiser-correct .(BRANCH (ls ▹ l) (rs ▹ r)) ⟨ true ∷ stack₁ , memory₁ ⟩ | factor ls l rs r | nothing rewrite miscellaneousOptimiser-correct ls ⟨ stack₁ , memory₁ ⟩ = miscellaneousOptimiser-correct l _
   miscellaneousOptimiser-correct .(BRANCH p p') ⟨ false ∷ stack₁ , memory₁ ⟩ | branch p p' = miscellaneousOptimiser-correct p' _ 
   miscellaneousOptimiser-correct .(BRANCH p p') ⟨ true ∷ stack₁ , memory₁ ⟩ | branch p p' = miscellaneousOptimiser-correct p _
   miscellaneousOptimiser-correct .(p ▹ p') c | seq p p' rewrite miscellaneousOptimiser-correct p c = miscellaneousOptimiser-correct p' _
   miscellaneousOptimiser-correct p c | other .p = refl
-  
+
+ 
   {- ??? 2.28 Now implement the worker of the optimiser, which takes a
          list of optimisers to run, a maximum number of times to run
          them, and a program to optimise. It should keep applying all
