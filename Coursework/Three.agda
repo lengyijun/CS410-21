@@ -367,11 +367,25 @@ appAll .(_ ∷ xs) (_∷_ {xs = xs} px₁ x) (px ∷ x₁) = px₁ px ∷ appAll
 -- (i)  This is a classic exercise in deploying applicative structure.
 -- (ii) This is not just for fun; you will need this later.
 
+jiting : {I J : Set} -> { R  : I → J → Set } -> {x₁ : J } -> {js : List J } -> (xs : List I) ->  All (λ i → All (R i) (x₁ ∷ js) → R i x₁) xs
+jiting [] = []
+jiting (x ∷ xs) = ( λ { (px ∷ x) → px } ) ∷ jiting xs
+
+jiqian : {I J : Set} -> { R  : I → J → Set } -> {x₁ : J } -> {js : List J } -> (xs : List I) ->  All (λ i → All (R i) (x₁ ∷ js) → All (R i) js ) xs
+jiqian [] = []
+jiqian (x ∷ xs) = (λ { (px ∷ z) → z } ) ∷ jiqian xs
+
+sumika :  {I J : Set} -> {x₃ : I } -> {js : List J} -> {xs : List I} -> {R  : I → J → Set } -> All (λ j →  R x₃ j -> All (λ x → R x j) xs -> All (λ x → R x j) (x₃ ∷ xs)) js
+sumika {I} {J} {x₃} {[]} {xs} {R} = []
+sumika {I} {J} {x₃} {x ∷ js} {xs} {R} = ( λ z -> λ y -> z ∷ y ) ∷ sumika
+
 transpose : {I J : Set}{R : I -> J -> Set}
             {is : List I}{js : List J}
   -> All (λ i -> All (λ x → R i x) js) is  -- If every i is related to every j,
   -> All (λ j -> All (λ x → R x j) is) js  -- show every j is related to every i.
-transpose = {!!}
+transpose {I} {J} {R} {is} {[]} x = []
+transpose {I} {J} {R} {.[]} {x₁ ∷ js} [] = [] ∷ transpose [] 
+transpose {I} {J} {R} {.(_ ∷ xs)} {x₁ ∷ js} (_∷_ {xs = xs} (px ∷ x) x₂) = (px ∷ (appAll xs (jiting xs) x₂)) ∷ appAll js (appAll js  sumika  x ) ( transpose (appAll xs (jiqian xs) x₂ ) )
 
 
 {- banff UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
