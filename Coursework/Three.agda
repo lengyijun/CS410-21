@@ -388,7 +388,6 @@ transpose {I} {J} {R} {.[]} {x₁ ∷ js} [] = [] ∷ transpose []
 transpose {I} {J} {R} {.(_ ∷ xs)} {x₁ ∷ js} (_∷_ {xs = xs} (px ∷ x) x₂) = (px ∷ (appAll xs (jiting xs) x₂)) ∷ appAll js (appAll js  sumika  x ) ( transpose (appAll xs (jiqian xs) x₂ ) )
 
 
-{- banff UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
 
 ------------------------------------------------------------------------------
 -- CUTTING THINGS UP (20 MARKS in total)
@@ -433,7 +432,7 @@ pieces NatCut (x , y , _) = x ∷ y ∷ []
 -}
 
 cut12 : ⟦ NatCut ⟧ IsOdd 12
-cut12 = {!!}
+cut12 = (5 , ( 7 , refl ) ) , sucsuc ( sucsuc one) ∷ sucsuc ( sucsuc ( sucsuc one )) ∷ []
 
 
 {- ??? 3.14 Extend ⟦_⟧ to a functor.
@@ -560,7 +559,6 @@ module _ {I : Set}{F : I <| I} where
     manyCutsMonad : Monad (I -C> SET)
     manyCutsMonad = {!!}
 
-END OF COMMENT banff -}
 
 {- cumbernauld UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
 
