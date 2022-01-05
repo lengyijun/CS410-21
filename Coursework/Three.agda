@@ -338,13 +338,10 @@ VApp n = record { pure = replicate ; _⊛_ = V._⊛_ }
 
 module _ {F : Set -> Set}(ApF : RawApplicative F) where
   open RawApplicative ApF
-
-  jiting : ∀ {X}{P : X -> Set}{x : X}{is : List X} -> P x -> ( All P is → All P (x ∷ is) )
-  jiting x x₁ = x ∷ x₁
   
   allYank : ∀ {X}{P : X -> Set} → ∀ is → All (F ∘′ P) is → (F ∘′ All P) is
   allYank {X} {P} .[] [] = pure []
-  allYank {X} {P} .(_ ∷ xs) (_∷_ {xs = xs} px x) =  _⊛_ ( _⊛_  ( pure jiting ) px ) ((allYank xs x ))
+  allYank {X} {P} .(_ ∷ xs) (_∷_ {xs = xs} px x) =  _⊛_ ( _⊛_  ( pure (λ x -> λ y -> x ∷ y ) ) px ) ((allYank xs x ))
 
 {- ??? 3.11 Find the *indexed* applicative structure for All. (This
        sadly does not fit in the RawApplicative record of the standard
