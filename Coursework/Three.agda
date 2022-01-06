@@ -447,6 +447,14 @@ module J {O I : Set} where
 
   open Functor
 
+  luyao : (xs : List I) -> ( A : I -> Set ) -> All (λ i → A i → A i) xs
+  luyao [] A = []
+  luyao (x ∷ xs) A = (λ x -> x ) ∷ luyao xs A
+  
+  lemma2 : { A : I -> Set } -> ( is : List I ) -> ( y : All A is ) -> appAll is (luyao is A) y ≡ y
+  lemma2 [] [] = refl
+  lemma2 (x ∷ is) (px ∷ y) = cong₂ _∷_ refl (lemma2 is y)
+  
   ⟦_⟧F : (F : O <| I) -> Functor (I -C> SET) (O -C> SET)
   act ⟦ Cuts₁ <! pieces₁ ⟧F P o = Σ (Cuts₁ o) \ c
                                     -> All P (pieces₁ c)
@@ -454,10 +462,24 @@ module J {O I : Set} where
     lemma : (xs : List I) -> All (λ i → A i → B i) xs
     lemma [] = []
     lemma (x ∷ xs) = f x ∷ lemma xs
-  identity ⟦ Cuts₁ <! pieces₁ ⟧F {A} = ext λ o -> ext λ { (cut , snd) → {!!} } where
-    lemma1 : (o : O ) -> ( cut : Cuts₁ o ) -> ( snd : All A (pieces₁ cut) ) -> appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (Category.id (I -C> SET)) o cut snd (pieces₁ cut)) snd ≡ snd
-    lemma1 o cut snd = {!!}
-  homomorphism ⟦ o<|i ⟧F = {!!}
+  identity ⟦ Cuts₁ <! pieces₁ ⟧F {A} = ext λ o -> ext λ { (cut , snd) → lemma4 o cut snd _ (lemma3 o cut snd) } where
+    lemma1 : (o : O ) -> ( cut : Cuts₁ o ) -> ( snd : All A (pieces₁ cut) ) -> (xs : List I) -> J.lemma Cuts₁ pieces₁ (Category.id (I -C> SET)) o cut snd xs ≡ luyao xs A
+    lemma1 o cut snd [] = refl
+    lemma1 o cut snd (x ∷ xs) = cong₂ _∷_ refl (lemma1 o cut snd xs)
+    lemma3 : (o : O ) -> ( cut : Cuts₁ o ) -> ( snd : All A (pieces₁ cut) ) ->  appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (Category.id (I -C> SET)) o cut snd  (pieces₁ cut)) snd ≡  snd
+    lemma3 o cut snd rewrite lemma1 o cut snd (pieces₁ cut) | lemma2 (pieces₁ cut) snd = refl
+    lemma4 :  (o : O ) -> ( cut : Cuts₁ o ) -> ( snd : All A (pieces₁ cut) ) -> ( x :  All A (pieces₁ cut) ) -> (z : x ≡ snd ) ->  ( cut , x ) ≡ id ( cut , snd)
+    lemma4 o cut snd .snd refl = refl
+  homomorphism ⟦ Cuts₁ <! pieces₁ ⟧F {X} {Y} {Z} {xy} {yz} = ext λ o -> ext λ { (cut , snd) → {!!} } where
+    lemma5 : (o : O ) -> ( cut : Cuts₁ o ) -> (snd : All X (pieces₁ cut)) ->  (cut , appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (((I -C> SET) Category.∘ yz) xy) o cut snd (pieces₁ cut)) snd) ≡ ((O -C> SET) Category.∘ fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy) o (cut , snd)
+    lemma5 o cut snd =
+      begin
+         (cut , appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (((I -C> SET) Category.∘ yz) xy) o cut snd (pieces₁ cut)) snd)
+      ≡⟨ {!!} ⟩
+         ((O -C> SET) Category.∘ fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy) o (cut , snd)
+      ∎ 
+
+      
 
 ------------------------------
 -- Cutting and cutting again
