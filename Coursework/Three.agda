@@ -448,7 +448,14 @@ module _ {O I : Set} where
   open Functor
 
   ⟦_⟧F : (F : O <| I) -> Functor (I -C> SET) (O -C> SET)
-  ⟦ x ⟧F = {!!}
+  act ⟦ Cuts₁ <! pieces₁ ⟧F P o = Σ (Cuts₁ o) \ c
+                                    -> All P (pieces₁ c)
+  fmap ⟦ Cuts₁ <! pieces₁ ⟧F {A} {B} f o (fst , snd) = fst , appAll (pieces₁ fst) (lemma (pieces₁ fst)) snd where
+    lemma : (xs : List I) -> All (λ i → A i → B i) xs
+    lemma [] = []
+    lemma (x ∷ xs) = f x ∷ lemma xs
+  identity ⟦ o<|i ⟧F = {!!}
+  homomorphism ⟦ o<|i ⟧F = {!!}
 
 ------------------------------
 -- Cutting and cutting again
