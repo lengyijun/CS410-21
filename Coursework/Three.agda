@@ -443,18 +443,20 @@ cut12 = (5 , ( 7 , refl ) ) , sucsuc ( sucsuc one) ∷ sucsuc ( sucsuc ( sucsuc 
   -- final program. You might also find `cong-app`, the inverse of
   -- function extensionality, useful.
 
-module _ {O I : Set} where
+module J {O I : Set} where
 
   open Functor
 
   ⟦_⟧F : (F : O <| I) -> Functor (I -C> SET) (O -C> SET)
   act ⟦ Cuts₁ <! pieces₁ ⟧F P o = Σ (Cuts₁ o) \ c
                                     -> All P (pieces₁ c)
-  fmap ⟦ Cuts₁ <! pieces₁ ⟧F {A} {B} f o (fst , snd) = fst , appAll (pieces₁ fst) (lemma (pieces₁ fst)) snd where
+  fmap ⟦ Cuts₁ <! pieces₁ ⟧F {A} {B} f o (fst , snd) = fst , appAll (pieces₁ fst) (lemma (pieces₁ fst)) snd module J where
     lemma : (xs : List I) -> All (λ i → A i → B i) xs
     lemma [] = []
     lemma (x ∷ xs) = f x ∷ lemma xs
-  identity ⟦ o<|i ⟧F = {!!}
+  identity ⟦ Cuts₁ <! pieces₁ ⟧F {A} = ext λ o -> ext λ { (cut , snd) → {!!} } where
+    lemma1 : (o : O ) -> ( cut : Cuts₁ o ) -> ( snd : All A (pieces₁ cut) ) -> appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (Category.id (I -C> SET)) o cut snd (pieces₁ cut)) snd ≡ snd
+    lemma1 o cut snd = {!!}
   homomorphism ⟦ o<|i ⟧F = {!!}
 
 ------------------------------
