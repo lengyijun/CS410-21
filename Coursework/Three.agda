@@ -444,22 +444,18 @@ cut12 = (5 , ( 7 , refl ) ) , sucsuc ( sucsuc one) ∷ sucsuc ( sucsuc ( sucsuc 
   -- final program. You might also find `cong-app`, the inverse of
   -- function extensionality, useful.
 
-module J {O I : Set} where
+module J {O I : Set}  {ℓᵢ ℓⱼ} {A : Set ℓᵢ} {P : A → Set ℓⱼ} where
 
   open Functor
-
-  luyao : (xs : List I) -> ( A : I -> Set ) -> All (λ i → A i → A i) xs
-  luyao [] A = []
-  luyao (x ∷ xs) A = (λ x -> x ) ∷ luyao xs A
-  
-  lemma2 : { A : I -> Set } -> ( is : List I ) -> ( y : All A is ) -> appAll is (luyao is A) y ≡ y
-  lemma2 [] [] = refl
-  lemma2 (x ∷ is) (px ∷ y) = cong₂ _∷_ refl (lemma2 is y)
   
   lemma : {A B : I -> Set } -> ( f : ((I -C> SET) Category.⇒ A) B ) -> (xs : List I) -> All (λ i → A i → B i) xs
   lemma f [] = []
   lemma f (x ∷ xs) = f x ∷ lemma f xs
-    
+
+  lemma2 : { A : I -> Set } -> ( is : List I ) -> ( y : All A is ) -> appAll is (lemma (λ i -> id) is) y ≡ y
+  lemma2 [] [] = refl
+  lemma2 (x ∷ is) (px ∷ y) = cong₂ _∷_ refl (lemma2 is y)
+
   ⟦_⟧F : (F : O <| I) -> Functor (I -C> SET) (O -C> SET)
   act ⟦ Cuts₁ <! pieces₁ ⟧F P o = Σ (Cuts₁ o) \ c
                                     -> All P (pieces₁ c)
@@ -468,12 +464,29 @@ module J {O I : Set} where
     lemma3 : (o : O) -> (z : Σ (Cuts₁ o) (λ c → All A (pieces₁ c)) )  -> (proj₁ z , appAll (pieces₁ (proj₁ z)) (lemma (Category.id (I -C> SET)) (pieces₁ (proj₁ z))) (proj₂ z)) ≡ id z
     lemma3 o (cut , snd) = begin
       cut , appAll (pieces₁ cut) (lemma (Category.id (I -C> SET)) (pieces₁ cut)) snd
-      ≡⟨ {!!} ⟩  cut , snd
-      ≡⟨ refl ⟩ id (cut , snd) ∎ where
-      lemma4 :  ( xs : List I ) -> (z : All A xs ) -> appAll xs (lemma (λ i → id) xs) z ≡ z
-      lemma4 [] [] = refl
-      lemma4 (x ∷ xs) (px ∷ z) = cong₂ _∷_  refl ( lemma4 xs z )
-  homomorphism ⟦ Cuts₁ <! pieces₁ ⟧F {X} {Y} {Z} {xy} {yz} = {!!}
+      ≡⟨ cong (_,_ cut) (lemma2 (pieces₁ cut) snd) ⟩  cut , snd
+      ≡⟨ refl ⟩ id (cut , snd) ∎
+  homomorphism ⟦ Cuts₁ <! pieces₁ ⟧F {X} {Y} {Z} {xy} {yz} = ext λ o -> ext λ x -> begin fmap ⟦ Cuts₁ <! pieces₁ ⟧F (((I -C> SET) Category.∘ yz) xy) o x
+    ≡⟨ refl ⟩
+       (proj₁ x ,
+       appAll (pieces₁ (proj₁ x))
+       (lemma (((I -C> SET) Category.∘ yz) xy) (pieces₁ (proj₁ x)))
+       (proj₂ x))
+    ≡⟨ cong (_,_ (proj₁ x)) (lemma4 (pieces₁ (proj₁ x)) (proj₂ x) ) ⟩
+     (fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz o)  ( (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy o) x)
+    ≡⟨ refl ⟩
+      Category.comp SET (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy o) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz o)  x
+    ≡⟨ refl ⟩
+    ((O -C> SET) Category.∘ fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy) o x ∎ where
+    lemma4 : (xs : List I ) -> (proof : All X xs ) ->  appAll xs
+      (lemma (((I -C> SET) Category.∘ yz) xy) xs)
+      proof
+      ≡
+      appAll xs (lemma yz xs)
+      (appAll xs (lemma xy xs)
+       proof)
+    lemma4 [] [] = refl
+    lemma4 (x ∷ xs) (px ∷ proof) = cong₂ _∷_ refl (lemma4 xs proof)
       
 
 ------------------------------
@@ -495,7 +508,7 @@ module _ {I : Set}(F : I <| I)(X : I -> Set) where
    (1 MARK) -}
 
 cut8 : ManyCuts NatCut IsOdd 8
-cut8 = {!!}
+cut8 = < ( ( 4 , 4 , refl ) , < ( (1 , 3 , refl ), stop one ∷ stop (sucsuc one) ∷ [] ) >  ∷ < ( (1 , 3 , refl ), stop one ∷ stop (sucsuc one) ∷ [] ) > ∷ [] ) >
 
 module _ {I : Set}(F : I <| I)
          {X Y : I -> Set}             -- Suppose we can turn...
@@ -511,7 +524,8 @@ module _ {I : Set}(F : I <| I)
   -- to get the termination checker to play along.
 
   manyCutsIter : ∀ i → ManyCuts F X i → Y i
-  manyCutsIter = {!!}
+  manyCutsIter i (stop x) = s i x
+  manyCutsIter i < cut , snd > = {!!}
 
 -- An important special case of manyCutsIter is a bind operation for ManyCuts:
 
