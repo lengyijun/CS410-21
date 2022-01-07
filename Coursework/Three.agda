@@ -1,3 +1,4 @@
+
 {-# OPTIONS --type-in-type --guardedness #-}
 ------------------------------------------------------------------------
 -- CS410 Advanced Functional Programming 2021
@@ -454,6 +455,10 @@ module J {O I : Set} where
   lemma2 : { A : I -> Set } -> ( is : List I ) -> ( y : All A is ) -> appAll is (luyao is A) y ≡ y
   lemma2 [] [] = refl
   lemma2 (x ∷ is) (px ∷ y) = cong₂ _∷_ refl (lemma2 is y)
+
+  okraee : ( xs : List I ) -> { X Y : I -> Set } -> ( xy : ((I -C> SET) Category.⇒ X) Y ) -> All (λ i -> X i -> Y i) xs
+  okraee [] xy = []
+  okraee (x ∷ xs) xy = xy x ∷ okraee xs xy
   
   ⟦_⟧F : (F : O <| I) -> Functor (I -C> SET) (O -C> SET)
   act ⟦ Cuts₁ <! pieces₁ ⟧F P o = Σ (Cuts₁ o) \ c
@@ -462,7 +467,7 @@ module J {O I : Set} where
     lemma : (xs : List I) -> All (λ i → A i → B i) xs
     lemma [] = []
     lemma (x ∷ xs) = f x ∷ lemma xs
-  identity ⟦ Cuts₁ <! pieces₁ ⟧F {A} = ext λ o -> ext λ { (cut , snd) → lemma4 o cut snd _ (lemma3 o cut snd) } where
+  identity ⟦ Cuts₁ <! pieces₁ ⟧F {A} = ext λ o -> ext λ { (cut , snd) → lemma4 o cut snd _ (lemma3 o cut snd) } module K where
     lemma1 : (o : O ) -> ( cut : Cuts₁ o ) -> ( snd : All A (pieces₁ cut) ) -> (xs : List I) -> J.lemma Cuts₁ pieces₁ (Category.id (I -C> SET)) o cut snd xs ≡ luyao xs A
     lemma1 o cut snd [] = refl
     lemma1 o cut snd (x ∷ xs) = cong₂ _∷_ refl (lemma1 o cut snd xs)
@@ -474,10 +479,30 @@ module J {O I : Set} where
     lemma5 : (o : O ) -> ( cut : Cuts₁ o ) -> (snd : All X (pieces₁ cut)) ->  (cut , appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (((I -C> SET) Category.∘ yz) xy) o cut snd (pieces₁ cut)) snd) ≡ ((O -C> SET) Category.∘ fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy) o (cut , snd)
     lemma5 o cut snd =
       begin
-         (cut , appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (((I -C> SET) Category.∘ yz) xy) o cut snd (pieces₁ cut)) snd)
-      ≡⟨ {!!} ⟩
-         ((O -C> SET) Category.∘ fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy) o (cut , snd)
-      ∎ 
+        cut , appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ (((I -C> SET) Category.∘ yz) xy) o cut snd (pieces₁ cut)) snd
+      ≡⟨ lemma8 ( lemma7 (pieces₁ cut) snd ) ⟩
+        cut , appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ yz o cut
+                                     (appAll (pieces₁ cut)
+                                      (J.lemma Cuts₁ pieces₁ xy o cut snd (pieces₁ cut)) snd)
+                                     (pieces₁ cut)) (appAll (pieces₁ cut)
+                                                      (J.lemma Cuts₁ pieces₁ xy o cut snd (pieces₁ cut)) snd)
+      ≡⟨ refl ⟩
+        (fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz o) ( cut , appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ xy o cut snd (pieces₁ cut) ) snd  )
+      ≡⟨ refl ⟩
+        (fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz o) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy o (cut , snd ))
+      ≡⟨ refl ⟩
+        Category.comp SET  (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy o)  (fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz o) (cut , snd)
+      ≡⟨ refl ⟩
+        ((O -C> SET) Category.∘ fmap ⟦ Cuts₁ <! pieces₁ ⟧F yz) (fmap ⟦ Cuts₁ <! pieces₁ ⟧F xy) o (cut , snd)
+      ∎  where
+      lemma6 : (xs : List I) ->  J.lemma Cuts₁ pieces₁ xy o cut snd xs ≡  okraee xs xy
+      lemma6 [] = refl
+      lemma6 (x ∷ xs) = cong₂ _∷_ refl (lemma6 xs)
+      lemma7 : (xs : List I) -> (y : All X xs) -> appAll xs (J.lemma Cuts₁ pieces₁ (((I -C> SET) Category.∘ yz) xy) o cut snd xs) y ≡ appAll xs (J.lemma Cuts₁ pieces₁ yz o cut  (appAll (pieces₁ cut) (J.lemma Cuts₁ pieces₁ xy o cut snd (pieces₁ cut)) snd) xs) (appAll xs (J.lemma Cuts₁ pieces₁ xy o cut snd xs) y)
+      lemma7 [] [] = refl
+      lemma7 (x ∷ xs) (px ∷ y) = cong₂ _∷_ refl  (lemma7 xs y)
+      lemma8 : { a b : All Z (pieces₁ cut) } -> ( z : a ≡ b) -> (cut , a ) ≡ (cut , b)
+      lemma8 refl = refl
 
       
 
