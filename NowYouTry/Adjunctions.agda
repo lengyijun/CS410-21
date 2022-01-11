@@ -65,23 +65,12 @@ record Adjunction {C D : Category}
                  comp SET (from {X} {B}) (λ k → comp D (fmap F f) (comp D k g))
                    ≡
                  comp SET (λ h → comp C f (comp C h (fmap G g))) (from {X'} {B'})
-  from-natural f g = SET ⊧begin
-    < (λ k → comp D (fmap F f) (comp D k g)) > ∘Syn < from >
-      ≡⟦ solveCat refl ⟧
-    -[ idSyn ]- ∘Syn < (λ k → comp D (fmap F f) (comp D k g)) > ∘Syn < from >
-      ≡⟦ reduced (rq (sym (ext left-inverse-of)) , rd , rd) ⟧
-    -[ < from > ∘Syn < to > ]- ∘Syn < (λ k → comp D (fmap F f) (comp D k g)) >  ∘Syn < from >
-      ≡⟦ solveCat refl ⟧
-    < from > ∘Syn -[ < to > ∘Syn < (λ k → comp D (fmap F f) (comp D k g)) > ]- ∘Syn < from >
-      ≡⟦ reduced (rd , rq (sym (to-natural f g)) , rd) ⟧
-    < from > ∘Syn -[ < (λ h → comp C f (comp C h (fmap G g))) > ∘Syn < to > ]- ∘Syn < from >
-      ≡⟦ solveCat refl ⟧
-    < from > ∘Syn < (λ h → comp C f (comp C h (fmap G g))) > ∘Syn -[ < to > ∘Syn < from > ]-
-      ≡⟦ reduced (rd , rd , rq (ext right-inverse-of))  ⟧
-    < from > ∘Syn < (λ h → comp C f (comp C h (fmap G g))) > ∘Syn -[ idSyn ]-
-      ≡⟦ solveCat refl ⟧
-    < from > ∘Syn < (λ h → comp C f (comp C h (fmap G g))) >
-      ⟦∎⟧
+  from-natural f g =
+    ≡-Reasoning.begin
+      (λ k → comp D (fmap F f) (comp D k g)) ∘′ from
+    ≡-Reasoning.≡⟨ {!!} ⟩
+      from ∘′ (λ h → comp C f (comp C h (fmap G g)))
+    ≡-Reasoning.∎
 
 ---------------------------------------------------------------------------
 -- Adjoints to the forgetful functor PREORDER -> SET
@@ -191,54 +180,80 @@ to-natural Either⊣diag f g = refl
 to-natural₁ : {C D : Category}{F : Functor C D}{G : Functor D C} -> (adj : Adjunction F G) ->
               {X X' : Obj C}(f : Hom C X' X) ->
              comp C f (to adj (id D)) ≡ to adj (fmap F f)
-to-natural₁ {C} {D} {F} {G} adj f = C ⊧begin
-  < to adj (id D) > ∘Syn < f >
-    ≡⟦ solveCat refl ⟧
-  -[ (fmapSyn G idSyn ∘Syn < to adj (id D) >) ∘Syn < f > ]-
-    ≡⟦ reduced (rq (cong-app (to-natural adj f (id D)) (id D))) ⟧
-  < to adj (comp D (fmap F f) (comp D (id D) (id D))) >
-    ≡⟦ reduced (rq (cong (to adj) (eqArr (solveCat {d = compSyn (fmapSyn F < f >) (compSyn idSyn idSyn)} {d' = fmapSyn F < f >} refl)))) ⟧
-  < to adj (fmap F f) >
-    ⟦∎⟧
+to-natural₁ {C} {D} {F} {G} adj f =
+ ≡-Reasoning.begin
+   comp C f (to adj (id D))
+ ≡-Reasoning.≡⟨ cong (comp C f) (sym (identityˡ C) ) ⟩
+   comp C f (comp C (to adj (id D)) (id C) )
+ ≡-Reasoning.≡⟨ cong₂ (comp C) refl (cong (comp C (to adj (id D)) ) (sym (identity G)) ) ⟩
+  comp C f (comp C (to adj (id D)) (fmap G (id D)))
+ ≡-Reasoning.≡⟨ cong-app (to-natural adj f (id D) ) (id D) ⟩
+   comp SET (λ k → comp D (fmap F f) (comp D k (id D))) (to adj)
+     (id D)
+ ≡-Reasoning.≡⟨ cong (to adj) (cong (comp D (fmap F f)) (identityˡ D)) ⟩
+   to adj (comp D (fmap F f) (id D ))
+ ≡-Reasoning.≡⟨ cong (to adj) (identityˡ D) ⟩
+   to adj (fmap F f)
+ ≡-Reasoning.∎
 
 to-natural₂ : {C D : Category}{F : Functor C D}{G : Functor D C} -> (adj : Adjunction F G) ->
                  {X : Obj C}{B' : Obj D}(g : Hom D (act F X) B') ->
                    comp C (to adj (id D)) (fmap G g) ≡ to adj g
-to-natural₂ {C} {D} {F} {G} adj g = C ⊧begin
-  fmapSyn G < g > ∘Syn < to adj (id D) >
-    ≡⟦ solveCat refl ⟧
-  (fmapSyn G < g > ∘Syn < to adj (id D) >) ∘Syn idSyn
-    ≡⟦ reduced (rq (cong-app (to-natural adj (id C) g) (id D))) ⟧
-  < to adj (comp D (fmap F (id C)) (comp D (id D) g)) >
-    ≡⟦ reduced (rq (cong (to adj) ((eqArr (solveCat {d = compSyn (fmapSyn F idSyn) (compSyn idSyn < g >)} {d' = < g >} refl))))) ⟧
-  < to adj g >
-    ⟦∎⟧
+to-natural₂ {C} {D} {F} {G} adj g =
+  ≡-Reasoning.begin
+    comp C (to adj (id D)) (fmap G g)
+  ≡-Reasoning.≡⟨ sym (identityʳ C)  ⟩
+    comp C (id C) (comp C (to adj (id D)) (fmap G g))
+  ≡-Reasoning.≡⟨ cong-app ( to-natural adj (id C) g ) (id D) ⟩
+    to adj ( comp D (fmap F (id C)) (comp D (id D) g) )
+  ≡-Reasoning.≡⟨ cong (to adj) (cong₂ (comp D) (identity F)  refl ) ⟩
+   to adj ( comp D (id D) (comp D (id D) g) )
+  ≡-Reasoning.≡⟨ cong (to adj) (identityʳ D) ⟩
+    to adj  (comp D (id D) g) 
+  ≡-Reasoning.≡⟨ cong (to adj) (identityʳ D) ⟩  
+   to adj g
+  ≡-Reasoning.∎
 
 from-natural₁ : {C D : Category}{F : Functor C D}{G : Functor D C} -> (adj : Adjunction F G) ->
                 {X : Obj C}{B' : Obj D}(f : Hom C X (act G B')) ->
                  comp D (fmap F f) (from adj (id C)) ≡ from adj f
-from-natural₁ {C} {D} {F} {G} adj f = D ⊧begin
-   < from adj (id C) > ∘Syn fmapSyn F < f >
-     ≡⟦ solveCat refl ⟧
-  -[ (idSyn ∘Syn  < from adj (id C) >) ∘Syn fmapSyn F < f > ]-
-     ≡⟦ reduced (rq (cong-app (from-natural {C} {D} {F} {G} adj f (id D)) (id C))) ⟧
-   < from adj (comp C f (comp C (id C) (fmap G (id D)))) >
-     ≡⟦ reduced (rq (cong (from adj) (eqArr (solveCat {d = compSyn < f > (compSyn idSyn (fmapSyn G idSyn))} {< f >} refl) ))) ⟧
-   < from adj f >
-     ⟦∎⟧
+from-natural₁ {C} {D} {F} {G} adj f =
+ ≡-Reasoning.begin
+   comp D (fmap F f) (from adj (id C))
+ ≡-Reasoning.≡⟨ cong₂ (comp D) refl ( sym (identityˡ  D)) ⟩
+   comp D (fmap F f) (comp D  (from adj (id C))  (id D) )
+ ≡-Reasoning.≡⟨ cong-app ( from-natural adj f (id D) ) (id C) ⟩
+   comp SET (λ h → comp C f (comp C h (fmap G (id D)))) (from adj)
+     (id C)
+ ≡-Reasoning.≡⟨ refl ⟩
+   from adj  ( comp C f ( comp C (id C) (fmap G (id D)) ))
+ ≡-Reasoning.≡⟨ cong (from adj) ( cong₂  (comp C) refl (identityʳ  C) ) ⟩
+   from adj  ( comp C f  (fmap G (id D)) )
+ ≡-Reasoning.≡⟨ cong (from adj) (cong (comp C f) (identity G) ) ⟩
+   from adj (comp C f (id C))
+ ≡-Reasoning.≡⟨ cong (from adj) (identityˡ  C ) ⟩
+   from adj f
+ ≡-Reasoning.∎
 
 from-natural₂ : {C D : Category}{F : Functor C D}{G : Functor D C} -> (adj : Adjunction F G) ->
                 {B B' : Obj D}(g : Hom D B B') ->
                  comp D (from adj (id C)) g ≡ from adj (fmap G g)
-from-natural₂ {C} {D} {F} {G} adj g = D ⊧begin
-  < g > ∘Syn < from adj (id C) >
-    ≡⟦ solveCat refl ⟧
-  -[ (< g > ∘Syn < from adj (id C) >) ∘Syn fmapSyn F idSyn ]-
-    ≡⟦ reduced (rq (cong-app (from-natural adj (id C) g) (id C))) ⟧
-  < from adj (comp C (id C) (comp C (id C) (fmap G g))) >
-    ≡⟦ reduced (rq (cong (from adj) (eqArr (solveCat {d = compSyn idSyn (compSyn idSyn (fmapSyn G < g >))} {fmapSyn G < g >} refl)))) ⟧
-  < from adj (fmap G g) >
-    ⟦∎⟧
+from-natural₂ {C} {D} {F} {G} adj g =
+ ≡-Reasoning.begin
+   comp D (from adj (id C)) g
+  ≡-Reasoning.≡⟨ sym (identityʳ D) ⟩
+     comp D  (id D) (comp D (from adj (id C)) g )
+  ≡-Reasoning.≡⟨ cong₂ (comp D) (sym (identity F)) refl ⟩
+    comp D  (fmap F (id C)) (comp D (from adj (id C)) g )
+  ≡-Reasoning.≡⟨ cong-app (from-natural adj (id C) g ) (id C) ⟩
+    comp SET (λ h → comp C (id C) (comp C h (fmap G g))) (from adj)
+      (id C)
+  ≡-Reasoning.≡⟨ cong (from adj) (cong (comp C (id C)) (identityʳ C) ) ⟩
+    from adj ((comp C (id C) (fmap G g)) )
+  ≡-Reasoning.≡⟨ cong (from adj) (identityʳ C) ⟩
+   from adj (fmap G g)
+  ≡-Reasoning.∎
+
 
 ---------------------------------------------------------------------------
 -- Monads from adjunctions
@@ -251,49 +266,20 @@ open NaturalTransformation
 monadFromAdj : (C D : Category)(F : Functor C D)(G : Functor D C) ->
                Adjunction F G -> Monad C
 functor (monadFromAdj C D F G adj) = compFunctor F G
-transform (returnNT (monadFromAdj C D F G adj)) X = to adj (id D)
-natural (returnNT (monadFromAdj C D F G adj)) X Y f = trans (to-natural₁ adj f) (sym (to-natural₂ adj (fmap F f)))
-transform (joinNT (monadFromAdj C D F G adj)) X = fmap G (from adj (id C))
-natural (joinNT (monadFromAdj C D F G adj)) X Y f = C ⊧begin
- fmapSyn G < from adj (id C) >  ∘Syn fmapSyn G (fmapSyn F (fmapSyn G (fmapSyn F < f > )))
-   ≡⟦ solveCat refl ⟧
- fmapSyn G (< from adj (id C) > ∘Syn fmapSyn F (fmapSyn G (fmapSyn F < f > )))
-   ≡⟦ reduced (rq (cong (fmap G) (trans (from-natural₁ adj (fmap G (fmap F f))) (sym (from-natural₂ adj (fmap F f)))))) ⟧
- fmapSyn G (fmapSyn F < f > ∘Syn < from adj (id C) >)
-   ≡⟦ solveCat refl ⟧
- fmapSyn G (fmapSyn F < f >) ∘Syn fmapSyn G < from adj (id C) >
-   ⟦∎⟧
-returnJoin (monadFromAdj C D F G adj) = C ⊧begin
-  -[ fmapSyn G < from adj (id C) > ∘Syn < to adj (id D) > ]-
-    ≡⟦ reduced (rq (to-natural₂ adj (from adj (id C)))) ⟧
-  < to adj (from adj (id C)) >
-    ≡⟦ reduced (rq (right-inverse-of adj (id C))) ⟧
-  idSyn
-    ⟦∎⟧
-mapReturnJoin (monadFromAdj C D F G adj) = C ⊧begin
-  fmapSyn G < from adj (id C) > ∘Syn fmapSyn G (fmapSyn F < to adj (id D) >)
-    ≡⟦ solveCat refl ⟧
-  fmapSyn G (< from adj (id C) > ∘Syn fmapSyn F < to adj (id D) >)
-    ≡⟦ reduced (rq (cong (fmap G) (trans (from-natural₁ adj (to adj (id D))) (left-inverse-of adj (id D))))) ⟧
-  fmapSyn G idSyn
-    ≡⟦ solveCat refl ⟧
-  idSyn
-    ⟦∎⟧
-joinJoin (monadFromAdj C D F G adj) = C ⊧begin
-  fmapSyn G < from adj (id C) > ∘Syn fmapSyn G < from adj (id C) >
-    ≡⟦ solveCat refl ⟧
-  fmapSyn G (< from adj (id C) > ∘Syn < from adj (id C) >)
-    ≡⟦ reduced (rq (cong (fmap G) (D ⊧begin
-         -[ < from adj (id C) > ∘Syn < from adj (id C) > ]-
-           ≡⟦ reduced (rq (from-natural₂ adj (from adj (id C)))) ⟧
-         < from adj (fmap G (from adj (id C))) >
-            ≡⟦ reduced (rq (sym (from-natural₁ adj (fmap G (from adj (id C)))))) ⟧
-         < from adj (id C) > ∘Syn fmapSyn F (fmapSyn G < from adj (id C) >)
-           ⟦∎⟧))) ⟧
-  fmapSyn G (< from adj (id C) > ∘Syn fmapSyn F (fmapSyn G < from adj (id C) >))
-      ≡⟦ solveCat refl ⟧
-  fmapSyn G < from adj (id C) > ∘Syn fmapSyn G (fmapSyn F (fmapSyn G < from adj (id C) >))
-    ⟦∎⟧
+transform (returnNT (monadFromAdj C D F G adj)) c = to adj (id D)
+natural (returnNT (monadFromAdj C D F G adj)) X Y cxy =
+  ≡-Reasoning.begin
+    (C ∘ to adj (id D)) cxy
+  ≡-Reasoning.≡⟨ to-natural₁ adj cxy ⟩
+    to adj (fmap F cxy)
+  ≡-Reasoning.≡⟨ sym (to-natural₂ adj (fmap F cxy))⟩
+    (C ∘ fmap G (fmap F cxy)) (to adj (id D))
+  ≡-Reasoning.∎
+transform (joinNT (monadFromAdj C D F G adj)) X = fmap G (fmap F  {!!} )
+natural (joinNT (monadFromAdj C D F G x)) = {!!}
+returnJoin (monadFromAdj C D F G x) = {!!}
+mapReturnJoin (monadFromAdj C D F G x) = {!!}
+joinJoin (monadFromAdj C D F G x) = {!!}
 
 ---------------------------------------------------------------------------
 -- Every monad arises from an adjunction
