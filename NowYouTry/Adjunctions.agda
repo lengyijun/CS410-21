@@ -65,11 +65,19 @@ record Adjunction {C D : Category}
                  comp SET (from {X} {B}) (λ k → comp D (fmap F f) (comp D k g))
                    ≡
                  comp SET (λ h → comp C f (comp C h (fmap G g))) (from {X'} {B'})
-  from-natural f g =
+  from-natural f g = ext λ x -> 
     ≡-Reasoning.begin
-      (λ k → comp D (fmap F f) (comp D k g)) ∘′ from
-    ≡-Reasoning.≡⟨ {!!} ⟩
-      from ∘′ (λ h → comp C f (comp C h (fmap G g)))
+       ((λ k → comp D (fmap F f) (comp D k g)) ∘′ from) x
+    ≡-Reasoning.≡⟨ sym ( left-inverse-of _ ) ⟩
+      from (to (((λ k → comp D (fmap F f) (comp D k g) ) ∘′ from) x))
+    ≡-Reasoning.≡⟨ refl ⟩
+      from (to ((λ k → comp D (fmap F f) (comp D k g) ) (from x) ))
+    ≡-Reasoning.≡⟨ cong from ( cong-app (sym ( to-natural _ _ )) (from x) ) ⟩
+     from (comp SET to (λ h → comp C f (comp C h (fmap G g))) (from x))
+    ≡-Reasoning.≡⟨ refl ⟩
+      (from ∘′ (λ h → comp C f (comp C h (fmap G g)))) (to (from x))
+    ≡-Reasoning.≡⟨ cong ( (from ∘′ (λ h → comp C f (comp C h (fmap G g))))) (right-inverse-of x) ⟩
+       (from ∘′ (λ h → comp C f (comp C h (fmap G g)))) x
     ≡-Reasoning.∎
 
 ---------------------------------------------------------------------------
@@ -275,12 +283,81 @@ natural (returnNT (monadFromAdj C D F G adj)) X Y cxy =
   ≡-Reasoning.≡⟨ sym (to-natural₂ adj (fmap F cxy))⟩
     (C ∘ fmap G (fmap F cxy)) (to adj (id D))
   ≡-Reasoning.∎
-transform (joinNT (monadFromAdj C D F G adj)) X = fmap G (fmap F  {!!} )
-natural (joinNT (monadFromAdj C D F G x)) = {!!}
-returnJoin (monadFromAdj C D F G x) = {!!}
-mapReturnJoin (monadFromAdj C D F G x) = {!!}
-joinJoin (monadFromAdj C D F G x) = {!!}
-
+transform (joinNT (monadFromAdj C D F G adj)) X = fmap G (from adj (id C))
+natural (joinNT (monadFromAdj C D F G adj)) X Y f =
+    ≡-Reasoning.begin
+       (C ∘ fmap G (from adj (id C)))
+      (fmap
+       (compFunctor
+        (compFunctor F G) (compFunctor F G))
+       f)
+    ≡-Reasoning.≡⟨ sym (homomorphism G) ⟩
+      fmap G ( comp D (fmap F (fmap (compFunctor F G) f)) (from adj (id C)) )
+    ≡-Reasoning.≡⟨ cong (fmap G) (from-natural₁ adj _)  ⟩
+      fmap G (from adj (fmap G (fmap F f)))
+    ≡-Reasoning.≡⟨ cong (fmap G) ( sym ( from-natural₂ adj _) ) ⟩
+      fmap G ( comp D (from adj (id C))  (fmap F f) )
+    ≡-Reasoning.≡⟨ homomorphism G ⟩
+       (C ∘ fmap G (fmap F f)) (fmap G (from adj (id C)))
+    ≡-Reasoning.∎
+returnJoin (monadFromAdj C D F G adj) {X} =
+   ≡-Reasoning.begin
+      (C ∘ fmap G (from adj (id C))) (to adj (id D))
+   ≡-Reasoning.≡⟨ sym (identityʳ C) ⟩
+      comp C (id C) (comp C (to adj (id D)) (fmap G (from adj (id C))))
+   ≡-Reasoning.≡⟨ cong-app ( to-natural adj (id C) (from adj (id C)) ) (id D)  ⟩
+     to adj (comp D (fmap F (id C)) (comp D (id D) (from adj (id C))) )
+   ≡-Reasoning.≡⟨ cong (to adj) ( cong₂ (comp D) (identity F) refl) ⟩
+      to adj (comp D (id D) (comp D (id D) (from adj (id C))) )
+   ≡-Reasoning.≡⟨ cong (to adj) (identityʳ D) ⟩
+     to adj (comp D (id D) (from adj (id C)) )
+   ≡-Reasoning.≡⟨ cong (to adj) (identityʳ D) ⟩
+     to adj (from adj (id C))
+   ≡-Reasoning.≡⟨ right-inverse-of adj (id C) ⟩
+      id C
+   ≡-Reasoning.∎
+mapReturnJoin (monadFromAdj C D F G adj) {X} =
+   ≡-Reasoning.begin
+  (C ∘ fmap G (from adj (id C)))
+      (fmap G (fmap F (to adj (id D))))
+   ≡-Reasoning.≡⟨ sym (homomorphism G) ⟩
+     fmap G (comp D (fmap F (to adj (id D))) (from adj (id C)) )
+   ≡-Reasoning.≡⟨ cong (fmap G) jiting ⟩
+     fmap G (id D)
+   ≡-Reasoning.≡⟨ identity G ⟩
+     id C
+   ≡-Reasoning.∎ where
+   jiting :  comp D (fmap F (to adj (id D))) (from adj (id C)) ≡ id D
+   jiting =
+     ≡-Reasoning.begin
+       comp D (fmap F (to adj (id D))) (from adj (id C))
+     ≡-Reasoning.≡⟨ cong (comp D (fmap F (to adj (id D)))) ( sym (identityˡ D) ) ⟩
+      comp D (fmap F (to adj (id D))) (comp D (from adj (id C)) (id D))
+     ≡-Reasoning.≡⟨ cong-app ( from-natural adj (to adj (id D)) (id D) ) (id C) ⟩
+       from adj (comp C (to adj (id D)) (comp C (id C) (fmap G (id D))) )
+     ≡-Reasoning.≡⟨ cong (from adj) ( cong (comp C (to adj (id D))) (identityʳ C) ) ⟩
+       from adj (comp C (to adj (id D)) (fmap G (id D)))
+     ≡-Reasoning.≡⟨ cong (from adj) ( cong (comp C (to adj (id D))) (identity G)) ⟩
+       from adj (comp C (to adj (id D)) (id C))
+     ≡-Reasoning.≡⟨ cong (from adj)  (identityˡ C) ⟩
+       from adj (to adj (id D))
+     ≡-Reasoning.≡⟨ left-inverse-of adj (id D) ⟩
+       id D
+     ≡-Reasoning.∎
+ 
+joinJoin (monadFromAdj C D F G adj) {X} =
+     ≡-Reasoning.begin
+       (C ∘ fmap G (from adj (id C))) (fmap G (from adj (id C)))
+     ≡-Reasoning.≡⟨ sym (homomorphism G) ⟩
+       fmap G ( comp D (from adj (id C)) (from adj (id C)) )
+     ≡-Reasoning.≡⟨ cong (fmap G) (from-natural₂ adj _) ⟩
+       fmap G (from adj (fmap G (from adj (id C))))
+     ≡-Reasoning.≡⟨ cong (fmap G) (sym ( from-natural₁ adj _ )) ⟩
+       fmap G ( comp D (fmap F (fmap G (from adj (id C)))) (from adj (id C)) )
+     ≡-Reasoning.≡⟨ homomorphism G ⟩
+        (C ∘ fmap G (from adj (id C)))
+      (fmap G (fmap F (fmap G (from adj (id C)))))
+     ≡-Reasoning.∎
 ---------------------------------------------------------------------------
 -- Every monad arises from an adjunction
 ---------------------------------------------------------------------------
@@ -293,31 +370,21 @@ homomorphism (ForgetKleisli {C} M) {Z = Z} {f = f} {g} =
   trans (cong (λ z → comp C (fmap (functor M) z) (join M Z)) (sym (assoc C))) (bindBind M {f = f} {g})
 
 kleisliAdjunction : {C : Category}(M : Monad C) -> Adjunction (EmbedKleisli M) (ForgetKleisli M)
-to (kleisliAdjunction M) f = f
-from (kleisliAdjunction M) f = f
+to (kleisliAdjunction M) x = x
+from (kleisliAdjunction M) x = x
 left-inverse-of (kleisliAdjunction M) h = refl
-right-inverse-of (kleisliAdjunction M) h = refl
-to-natural (kleisliAdjunction {C} M) f g = ext λ h →  C ⊧begin
-  ((< join M _ > ∘Syn fmapSyn (functor M) < g >) ∘Syn < h >) ∘Syn < f >
-    ≡⟦ solveCat refl ⟧
-  -[ idSyn ]- ∘Syn < join M _ > ∘Syn fmapSyn (functor M) < g > ∘Syn < h > ∘Syn < f >
-    ≡⟦ reduced (rq (sym (returnJoin M)) , rd , rd , rd , rd) ⟧
-  -[ < join M _ > ∘Syn < return M _ > ]- ∘Syn < join M _ > ∘Syn fmapSyn (functor M) < g > ∘Syn < h > ∘Syn < f >
-    ≡⟦ solveCat refl ⟧
-  < join M _ > ∘Syn -[ < return M _ > ∘Syn < join M _ > ]- ∘Syn fmapSyn (functor M) < g > ∘Syn < h > ∘Syn < f >
-    ≡⟦ reduced (rd , rq (natural (returnNT M) _ _ _) , rd , rd , rd) ⟧
-  < join M _ > ∘Syn -[ fmapSyn (functor M) < join M _ > ∘Syn < return M _ > ]- ∘Syn fmapSyn (functor M) < g > ∘Syn < h > ∘Syn < f >
-    ≡⟦ solveCat refl ⟧
-  < join M _ > ∘Syn fmapSyn (functor M) < join M _ > ∘Syn -[ < return M _ > ∘Syn fmapSyn (functor M) < g > ]- ∘Syn < h > ∘Syn < f >
-    ≡⟦ reduced (rd , rd , rq (natural (returnNT M) _ _ _) , rd , rd) ⟧
-  < join M _ > ∘Syn fmapSyn (functor M) < join M _ > ∘Syn -[ fmapSyn (functor M) (fmapSyn (functor M) < g >) ∘Syn < return M _ > ]- ∘Syn < h > ∘Syn < f >
-    ≡⟦ solveCat refl ⟧
-  < join M _ > ∘Syn fmapSyn (functor M) < join M _ > ∘Syn fmapSyn (functor M) (fmapSyn (functor M) < g >) ∘Syn -[ < return M _ > ∘Syn < h > ]- ∘Syn < f >
-    ≡⟦ reduced (rd , rd , rd , rq (natural (returnNT M) _ _ _) , rd) ⟧
-  < join M _ > ∘Syn fmapSyn (functor M) < join M _ > ∘Syn fmapSyn (functor M) (fmapSyn (functor M) < g >) ∘Syn -[ fmapSyn (functor M) < h > ∘Syn < return M _ > ]- ∘Syn < f >
-    ≡⟦ solveCat refl ⟧
-  < join M _ > ∘Syn fmapSyn (functor M) (< join M _ > ∘Syn fmapSyn (functor M) < g > ∘Syn < h > ) ∘Syn < return M _ > ∘Syn < f >
-    ⟦∎⟧
+right-inverse-of (kleisliAdjunction M) k = refl
+to-natural (kleisliAdjunction {C} M) {X} {X'} {B} {B'} f g = ext λ x →
+  ≡-Reasoning.begin
+    ((λ h → comp C f (comp C h (bind M g))) ∘′ (λ x₁ → x₁)) x
+  ≡-Reasoning.≡⟨ refl ⟩
+     (λ h → comp C f (comp C h (bind M g)) ) x
+  ≡-Reasoning.≡⟨ refl ⟩
+    comp C f (comp C x (bind M g))
+  ≡-Reasoning.≡⟨ {!!} ⟩
+    comp (Kleisli M)  (fmap (EmbedKleisli M) f) (comp (Kleisli M) (to (kleisliAdjunction M) x) g)
+  ≡-Reasoning.∎
+
 
 -- Theorem: monadFromAdj (kleisliAdjunction M) ≅ M
 
