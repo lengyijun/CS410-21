@@ -523,9 +523,15 @@ module _ {I : Set}(F : I <| I)
   -- HINT: You will need to mutually define functoriality of All again
   -- to get the termination checker to play along.
 
-  manyCutsIter : ∀ i → ManyCuts F X i → Y i
-  manyCutsIter i (stop x) = s i x
-  manyCutsIter i < cut , snd > = {!!}
+  mutual
+  
+    appAll' : ∀ is → All (ManyCuts F X) is → All Y is
+    appAll' [] x = []
+    appAll' (x₁ ∷ is) (px ∷ x) = manyCutsIter x₁ px ∷ appAll' is x
+    
+    manyCutsIter : ∀ i → ManyCuts F X i → Y i
+    manyCutsIter i (stop x) = s i x
+    manyCutsIter i < cut , snd > = c i ( cut , appAll' (pieces F cut) snd )
 
 -- An important special case of manyCutsIter is a bind operation for ManyCuts:
 
@@ -539,11 +545,11 @@ manyCutsBind F k = manyCutsIter F k (λ i → <_>)
 
 ManyCuts-map : {I : Set}(F : I <| I){X Y : I -> Set} ->
                (∀ i → X i → Y i) -> ∀ is → ManyCuts F X is → ManyCuts F Y is
-ManyCuts-map = {!!}
+ManyCuts-map F x  = manyCutsBind F ( λ i f -> stop (x i f) )
 
 manyCutsJoin : {I : Set}(F : I <| I){X : I -> Set} ->
                ∀ i → ManyCuts F (ManyCuts F X) i → ManyCuts F X i
-manyCutsJoin = {!!}
+manyCutsJoin F = manyCutsBind F λ x i -> i
 
 
 {- ??? 3.18 Show that replacing stop by stop and cuts by cuts does nothing.
@@ -551,9 +557,18 @@ manyCutsJoin = {!!}
 
 -- HINT: You might want to do something simultaneous.
 
+mutual
+  lemma3 :  {I : Set}{F : I <| I}{X : I -> Set} → ( x : I )  -> (px :  ManyCuts F X x ) -> manyCutsIter F (λ i₁ → stop) (λ i₁ → <_>) x px ≡ px
+  lemma3 x (stop x₁) = refl
+  lemma3 x < fst , snd > = cong <_> ( cong (fst ,_) ( lemma2 snd ) )
+  
+  lemma2 : {I : Set}{F : I <| I}{X : I -> Set} → ∀ { xs } -> ( snd :  All (ManyCuts F X) xs ) ->  appAll' F (λ i₁ → stop) (λ i₁ → <_>) xs snd ≡ snd
+  lemma2 {_}{_}{_}{[]} [] = refl
+  lemma2 {_}{_}{_}{x ∷ xs} (px ∷ snd) = cong₂ _∷_ (lemma3 x px) (lemma2 snd)
+    
 manyCutsIterId : {I : Set}{F : I <| I}{X : I -> Set} →
                  (i : I) → manyCutsIter F (λ i → stop {X = X}) (λ i → <_>) i ≡ id
-manyCutsIterId = {!!}
+manyCutsIterId {I} {F} {X} i = ext λ { (stop x) → refl ; < fst , snd > → cong <_> (cong (fst ,_) (lemma2 snd) )  }
 
 module _ {I : Set}{F : I <| I} where
 
@@ -576,7 +591,11 @@ module _ {I : Set}{F : I <| I} where
     manyCutsBindIter : comp (manyCutsBind F k) (manyCutsIter F s c)
                      ≡
                    manyCutsIter F (comp k (manyCutsIter F s c)) c
-    manyCutsBindIter = {!!}
+    manyCutsBindIter = ext λ x -> ext λ { (stop x) → refl ; < fst , snd > → cong ( c x ) ( cong (fst ,_) (lemma _) ) } where
+      lemma : ∀ { xs } -> (snd : All (ManyCuts F W) xs ) -> appAll' F s c xs  (appAll' F k (λ i → <_>) xs snd) ≡ appAll' F (comp k (manyCutsIter F s c)) c xs snd
+      lemma {[]} [] = refl
+      lemma {x ∷ xs} (stop x₁ ∷ snd) = cong₂ _∷_ refl (lemma snd)
+      lemma {x ∷ xs} (< fst , snd₁ > ∷ snd) = cong₂ _∷_ ( cong (c x) (cong (fst ,_) (lemma _ ) ) ) (lemma snd)
 
   -- Suitably tooled up, go for the win.
 
@@ -594,13 +613,26 @@ module _ {I : Set}{F : I <| I} where
     -- friend here for the proofs.
 
     MANYCUTS : Functor (I -C> SET) (I -C> SET)
-    MANYCUTS = {!!}
+    act MANYCUTS = ManyCuts F
+    fmap MANYCUTS {A} {B} = ManyCuts-map F
+    identity MANYCUTS {A} = ext λ x -> (manyCutsIterId x )
+    homomorphism MANYCUTS {X} {Y} {Z} {xy} {yz} = sym (manyCutsBindIter ( λ i x -> stop (xy i x)) (λ i y -> stop (yz i y)) ( λ i f ->  < f > ) )
 
     manyCutsMonad : Monad (I -C> SET)
-    manyCutsMonad = {!!}
+    functor manyCutsMonad = MANYCUTS
+    transform (returnNT manyCutsMonad) X i x = stop x
+    natural (returnNT manyCutsMonad) X Y f = ext λ i -> ext λ x -> refl
+    transform (joinNT manyCutsMonad) X = manyCutsJoin F
+    natural (joinNT manyCutsMonad) X Y f = trans ( manyCutsBindIter (λ i x -> stop (ManyCuts-map F f i x)) (λ i f -> f )   λ i f -> < f > ) ( sym ( manyCutsBindIter (λ i x -> x) ( λ i x -> stop (f i x) ) ( λ i f -> < f > ) ) )
+    returnJoin manyCutsMonad = ext λ i -> ext λ x -> refl
+    mapReturnJoin manyCutsMonad {X} = trans ( manyCutsBindIter (λ i x -> stop (stop x )) (λ i x -> x ) (λ i f ->  < f > ) ) ( ext λ i -> ext λ { (stop x) → refl ; < fst , snd > -> cong <_> ( cong (fst ,_) (lemma _) ) } )  where
+      lemma : ∀ {xs} -> (snd : All (ManyCuts F X) xs ) -> appAll' F  (comp (λ i₁ x → stop (stop x)) (manyCutsIter F (λ i₁ x → x) (λ i₁ → <_>))) (λ i₁ → <_>) xs snd ≡ snd
+      lemma {[]} [] = refl
+      lemma {x ∷ xs} (stop x₁ ∷ snd) = cong₂ _∷_ refl (lemma snd)
+      lemma {x ∷ xs} (< fst , snd₁ > ∷ snd) = cong₂ _∷_ (cong <_> (cong (fst ,_) (lemma2 _))) (lemma snd)
+    joinJoin manyCutsMonad {X} = trans ( manyCutsBindIter ( λ i x -> x ) ( λ i x -> x ) (λ i f -> < f > ) ) ( sym ( manyCutsBindIter ( λ i x -> stop (transform (joinNT manyCutsMonad) X i x) ) ( λ i x -> x ) ( λ i f ->  < f > )  ) )
 
 
-{- cumbernauld UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
 
 ------------------------------------
 --  Cutting in Multiple Dimensions
@@ -624,7 +656,9 @@ module _ {I : Set}{F : I <| I} where
 --       chosen scheme.
 
 _>+<_ : forall {O I} -> O <| I -> O <| I -> O <| I
-(x >+< y) = {!!}
+Cuts (x >+< y) o = Cuts x o  ⊎  Cuts y o
+pieces (x >+< y) {o} (inj₁ x₁) = pieces x x₁
+pieces (x >+< y) {o} (inj₂ y₁) = pieces y y₁
 
 {- ??? 3.22 Right and Left Framing.
    (2 MARKS)
@@ -640,10 +674,12 @@ _>+<_ : forall {O I} -> O <| I -> O <| I -> O <| I
 
 
 _>|_ : forall {O I}      (C : O <| I) J   ->      (O × J) <|     (I × J)
-(x >| J) = {!!}
+Cuts (x >| J) (o , j) = Cuts x o × J
+pieces (x >| J) {o} (fst , j) = L.map ( λ i -> i , j ) ( pieces x fst )
 
 _|<_ : forall {O I}    J (C : O <| I)     ->  (J × O)     <| (J × I)
-(J |< x) = {!!}
+Cuts (J |< x) (j , o) = J × Cuts x o
+pieces (J |< x) {o} (j , snd) = L.map (λ i -> j , i) (pieces x snd)
 
 -- Intuition:
 -- If you know how to cut up a number into parts, then you know how to
@@ -666,7 +702,9 @@ _|<_ : forall {O I}    J (C : O <| I)     ->  (J × O)     <| (J × I)
 -- HINT: use framing and angelic choice, of course!
 
 _|+|_ : forall {I J} -> I <| I -> J <| J -> (I × J) <| (I × J)
-F |+| G = {!!}
+Cuts (F |+| G) (i , j) = Cuts F i ⊎ Cuts G j
+pieces (F |+| G) {fst , snd} (inj₁ x) = L.map (λ i → i , snd) (pieces F x)
+pieces (F |+| G) {fst , snd} (inj₂ y) = L.map (λ j -> fst , j) (pieces G y)
 
 
 -- Having taken those small steps, we now have a scheme for cutting up
@@ -693,11 +731,10 @@ data Square : ℕ × ℕ -> Set where
 --       is square.
 
 example : ManyCuts RectCut Square (10 , 6)
-example = {!!}
+example = < inj₁ ( 6 , 4 , refl )  , ( stop ( square 6 ) ) ∷ < inj₂ ( 4 , 2 , refl ) , stop (square 4) ∷  < inj₁ ( 2 , 2 , refl ) , stop (square 2) ∷ ( stop (square 2) ) ∷ []   > ∷ [] > ∷ [] >
 
 -- TO PONDER: if you ignore the specification, is this the only way to square the rectangle?
 
-END OF COMMENT cumbernauld -}
 
 {- dollar UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
 
