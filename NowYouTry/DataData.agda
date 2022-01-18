@@ -117,6 +117,9 @@ module _ where
 
   ArgsForNat' = Args natCode
 
+  data ℕℕ : Set where
+    zeroorsuc : ArgsForNat' ℕℕ -> ℕℕ
+
   ℕ' = ⟦ natCode ⟧Desc
 
   -- zero' : ℕ'
