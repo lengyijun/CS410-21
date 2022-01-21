@@ -134,12 +134,12 @@ open ≡-Reasoning
 -- For every initial algebra, con : F X -> X is an isomorphism
 
 lambek : ℕ' -> Argsℕ ℕ'
-lambek n = {!!}  -- using foldℕ and Argsℕ-map
+lambek = foldℕ (Argsℕ-map conℕ)  -- using foldℕ and Argsℕ-map
 
 lambek∘con=id : ∀ n → conℕ (lambek n) ≡ n
 lambek∘con=id n = begin
   conℕ (lambek n)
-    ≡⟨ {!foldℕ-unique {!!} {!!} n!} ⟩
+    ≡⟨ foldℕ-unique (conℕ ∘ lambek) ( ext λ { (false , snd) → refl ; (true , snd) → refl } ) n ⟩
   foldℕ conℕ n
     ≡⟨ sym (foldℕ-unique id (ext λ x → cong conℕ (sym (Argsℕ-id x))) n) ⟩
   n
@@ -148,12 +148,18 @@ lambek∘con=id n = begin
 con∘lambek=id : ∀ x → lambek (conℕ x) ≡ x
 con∘lambek=id x = begin
   lambek (conℕ x)
-    ≡⟨ {!!} ⟩
+    ≡⟨ lemma2 x ⟩
   Argsℕ-map conℕ (Argsℕ-map lambek x)
-    ≡⟨ {!!} ⟩
+    ≡⟨ lemma x ⟩
   Argsℕ-map (conℕ ∘′ lambek) x
-    ≡⟨ cong (λ z → Argsℕ-map z x) {!!} ⟩
+    ≡⟨ cong (λ z → Argsℕ-map z x) ( ext λ x -> lambek∘con=id x ) ⟩
   Argsℕ-map id x
     ≡⟨ Argsℕ-id x ⟩
   x
-  ∎
+  ∎ where
+  lemma : ∀ x -> Argsℕ-map conℕ (Argsℕ-map lambek x) ≡  Argsℕ-map (conℕ ∘′ lambek) x
+  lemma (false , snd) = refl
+  lemma (true , snd) = refl
+  lemma2 : ∀ x ->  lambek (conℕ x) ≡ Argsℕ-map conℕ (Argsℕ-map lambek x)
+  lemma2 (false , snd) = refl
+  lemma2 (true , snd) = refl
