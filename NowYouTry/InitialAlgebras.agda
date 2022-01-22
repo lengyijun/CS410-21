@@ -163,3 +163,14 @@ con∘lambek=id x = begin
   lemma2 : ∀ x ->  lambek (conℕ x) ≡ Argsℕ-map conℕ (Argsℕ-map lambek x)
   lemma2 (false , snd) = refl
   lemma2 (true , snd) = refl
+
+{-
+JITING : ∀ {A f} -> foldℕ {A = A} f  ≡ f ∘′ Argsℕ-map (foldℕ f) ∘′ lambek
+JITING {A} {f} = ext λ { (DESC.con (false , DESC.con x)) → cong (λ x -> f ( false , x )) ( begin
+  foldℕ f (DESC.con x)
+  ≡⟨ refl ⟩
+  foldℕ f (proj₂  (false , DESC.con x))
+  ≡⟨ cong (foldℕ f) ( sym (lambek∘con=id _ ))  ⟩
+  foldℕ f (proj₂ (lambek (DESC.con (false , DESC.con x))))
+  ∎ ) ; (DESC.con (true , snd)) → refl }
+-}
