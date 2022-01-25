@@ -736,7 +736,7 @@ example = < inj₁ ( 6 , 4 , refl )  , ( stop ( square 6 ) ) ∷ < inj₂ ( 4 , 
 -- TO PONDER: if you ignore the specification, is this the only way to square the rectangle?
 
 
-{- dollar UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
+
 
 ------------------------------------------------------------------------------
 --  After Cut Comes Paste (20 MARKS in total)
@@ -756,7 +756,7 @@ Pasting C X = ∀ i → ⟦ C ⟧ X i → X i
 -}
 
 vecPaste : forall {X} -> Pasting NatCut (Vec X)
-vecPaste = {!!}
+vecPaste .(fst + fst₁) ((fst , fst₁ , refl) , (px ∷ (px₁ ∷ []))) = px ++ px₁
 
 -- We can now use the kit you built earlier to combine pasting
 -- algebras for multiple dimensions:
@@ -798,7 +798,6 @@ manyCutsMatrix : ∀ {X P} → (∀ i →  P i → Matrix X i) -> ∀ i → Many
 manyCutsMatrix = {!!}
 
 
-END OF COMMENT dollar -}
 
 {- elie UNCOMMENT WHEN YOU REACH THIS PART OF THE EXERCISE
 
