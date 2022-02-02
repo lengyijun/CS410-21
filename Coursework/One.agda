@@ -234,14 +234,10 @@ fastTreeSortCorrect (x ∷ xs) rewrite fastTreeSortCorrect xs  | fastFlattenCorr
   deMorgan-⊎-from : ¬ (P ⊎ Q) -> (¬ P) × (¬ Q)
   deMorgan-⊎-from x = ( λ p -> x (inj₁ p) ) , ( λ q -> x (inj₂ q))
 
-  jiting : (¬ P) × (¬ Q) -> (P ⊎ Q) -> ⊥
-  jiting (notp , notq) (inj₁ x) = notp x
-  jiting (notp , notq) (inj₂ y) = notq y
-
-  -- TODO better solution
   deMorgan-⊎-to : (¬ P) × (¬ Q) -> ¬ (P ⊎ Q)
-  deMorgan-⊎-to x = λ porq → jiting x porq
-
+  deMorgan-⊎-to (fst , snd) (inj₁ p) = fst p
+  deMorgan-⊎-to (fst , snd) (inj₂ q) = snd q
+  
   -- answer: unsolvable
   -- deMorgan-×-from : ¬ (P × Q) -> (¬ P) ⊎ (¬ Q)
   -- deMorgan-×-from = {!!}
@@ -257,10 +253,10 @@ fastTreeSortCorrect (x ∷ xs) rewrite fastTreeSortCorrect xs  | fastFlattenCorr
      (1 MARK) -}
 
   return : {P : Set} → P -> ¬ ¬ P
-  return p  = λ x -> x p
+  return p x = x p
 
   _>>=_ : {P Q : Set} → ¬ ¬ P -> (P -> ¬ ¬ Q) -> ¬ ¬ Q
-  (¬¬p >>= f) = λ notq -> ¬¬p ( ( variation1 f notq))
+  (¬¬p >>= f) notq = ¬¬p ( ( variation1 f notq))
 
   -- TIP: if an operation with name _>>=_ is in scope, Agda allows us to
   -- use do-notation (again possibly familiar from Haskell) to write
