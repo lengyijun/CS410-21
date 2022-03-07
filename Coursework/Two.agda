@@ -181,6 +181,7 @@ B→A (B.s≤s x) =  B→A x
 -- by "copattern matching", which is quite convenient: you give a
 -- definition for each field in the record.
 
+{-
 ABA : (n m : ℕ ) -> ( x : n A.≤ m ) ->  B→A ( A→B n m x ) ≡  x
 ABA zero m x  =  refl 
 ABA (suc n) (suc m) x = ABA n m x
@@ -188,12 +189,13 @@ ABA (suc n) (suc m) x = ABA n m x
 BAB  : (n m : ℕ ) -> ( x : n B.≤ m ) ->  A→B n m ( B→A x ) ≡  x
 BAB .zero m B.z≤n = refl
 BAB .(suc _) .(suc _) (B.s≤s b) = cong B.s≤s (BAB _ _  b)
+-}
 
 A↔B : (n m : ℕ) -> n A.≤ m ↔ n B.≤ m
 to (A↔B n m) = A→B n m
 from (A↔B n m) = B→A
-left-inverse-of (A↔B n m) a =  ABA n m a
-right-inverse-of (A↔B n m) b = BAB n m b
+left-inverse-of (A↔B n m) a = A.propositional n m _ a
+right-inverse-of (A↔B n m) b = B.propositional _ b
 
 {- ??? 2.7 Now show that you can translate between B.≤ and C.≤.
    (2 MARKS) -}
